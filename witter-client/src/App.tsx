@@ -11,6 +11,7 @@ import ProjectDetail from './pages/ProjectDetail';
 import GraduateProfile from './pages/GraduateProfile';
 import RegisterCompany from './pages/RegisterCompany';
 import AdminDashboard from './pages/AdminDashboard';
+import ExploreProjects from './pages/ExploreProjects';
 
 export default function App() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
@@ -83,6 +84,7 @@ export default function App() {
                 <Route path="dashboard" element={<GraduateDashboard />} />
                 <Route path="projects/:id" element={<ProjectDetail />} />
                 <Route path="profile" element={<GraduateProfile />} />
+                <Route path="explore" element={<ExploreProjects />} />
               </Routes>
             </Layout>
           } />

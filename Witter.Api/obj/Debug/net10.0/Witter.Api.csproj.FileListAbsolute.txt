@@ -161,3 +161,4 @@ C:\Users\LuisM\Music\WitterPlatform\Witter.Api\obj\Debug\net10.0\Witter.Api.pdb
 C:\Users\LuisM\Music\WitterPlatform\Witter.Api\obj\Debug\net10.0\Witter.Api.genruntimeconfig.cache
 C:\Users\LuisM\Music\WitterPlatform\Witter.Api\obj\Debug\net10.0\ref\Witter.Api.dll
 C:\Users\LuisM\Music\WitterPlatform\Witter.Api\bin\Debug\net10.0\BCrypt.Net-Next.dll
+C:\Users\LuisM\Music\WitterPlatform\Witter.Api\obj\Debug\net10.0\Witter.Api.sourcelink.json

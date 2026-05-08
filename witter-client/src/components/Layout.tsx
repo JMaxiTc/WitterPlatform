@@ -1,6 +1,6 @@
 import type { ReactNode } from 'react';
-import { Link } from 'react-router-dom'; 
-// Ya no necesitamos useNavigate aquí, porque la redirección la hará App.tsx al cambiar el estado
+import { Link } from 'react-router-dom';
+import { mdiMagnify } from '@mdi/js';
 
 interface LayoutProps {
   children: ReactNode;
@@ -68,6 +68,15 @@ export default function Layout({ children, role, userName, onLogout }: LayoutPro
               </Link>
               <Link to="/graduate/projects" className="nav-item">
                 <span className="nav-icon">◈</span><span>Mis Proyectos</span>
+              </Link>
+              <Link to="/graduate/explore" className={`nav-item ${location.pathname.includes('/graduate/explore') ? 'active' : ''}`}>
+                <span className="nav-icon">
+                  {/* Usamos un SVG nativo inyectando el path de la librería */}
+                  <svg viewBox="0 0 24 24" fill="currentColor" width="20" height="20">
+                    <path d={mdiMagnify} />
+                  </svg>
+                </span>
+                <span>Explorar Proyectos</span>
               </Link>
               <Link to="/graduate/profile" className="nav-item">
                 <span className="nav-icon">◑</span><span>Perfil / KYC</span>
