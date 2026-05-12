@@ -1,9 +1,15 @@
 import { useState, useEffect } from 'react';
-import witterApi from '../api/witterApi';
+import witterApi from '../../api/witterApi';
+
+interface Skill {
+  id: number;
+  name: string;
+}
 
 export default function GraduateProfile() {
   const [isSaving, setIsSaving] = useState(false);
   const [isLoading, setIsLoading] = useState(true); // Nuevo estado de carga
+  const [allSkills, setAllSkills] = useState<Skill[]>([]); // Habilidades 
 
   // Estado inicial vacío
   const [profileData, setProfileData] = useState({
@@ -27,18 +33,27 @@ export default function GraduateProfile() {
 
   // Efecto para cargar los datos al entrar a la pantalla
   useEffect(() => {
-    const fetchMyProfile = async () => {
+    const fetchData = async () => {
       try {
-        const response = await witterApi.get('/users/me');
-        const data = response.data.profile;
+        const [profileResponse, skillsResponse] = await Promise.all([
+          witterApi.get('/users/me'),
+          witterApi.get('/skills')
+        ]);
+        
+        const data = profileResponse.data.profile;
+        setAllSkills(skillsResponse.data);
 
         setProfileData(prev => ({
           ...prev,
           fullName: `${data.firstName} ${data.lastName}`,
           school: data.school,
+          campus: data.campus || '',
           degree: data.degree,
+          egressYear: data.egressYear || '',
+          licenseId: data.licenseId || '',
           githubUrl: data.githubUrl || '',
-          skills: response.data.skillIds || [],
+          linkedinUrl: data.linkedinUrl || '',
+          skills: profileResponse.data.skillIds || [],
           age: data.age // Tu propiedad calculada del backend
         }));
 
@@ -54,13 +69,21 @@ export default function GraduateProfile() {
       }
     };
 
-    fetchMyProfile();
+    fetchData();
   }, []);
 
   // ... el resto del código (handleProfileChange, handleBankChange) se queda igual ...
 
   const handleProfileChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
+    
+    // Validación para que Cédula Profesional solo acepte números
+    if (name === 'licenseId') {
+      const onlyNumbers = value.replace(/[^0-9]/g, '');
+      setProfileData(prev => ({ ...prev, [name]: onlyNumbers }));
+      return;
+    }
+
     setProfileData(prev => ({ ...prev, [name]: value }));
   };
 
@@ -69,13 +92,41 @@ export default function GraduateProfile() {
     setBankData(prev => ({ ...prev, [name]: value }));
   };
 
-  const handleSaveChanges = () => {
+  const handleAddSkill = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    const selectedId = Number(e.target.value);
+    if (selectedId && !profileData.skills.includes(selectedId)) {
+      setProfileData(prev => ({ ...prev, skills: [...prev.skills, selectedId] }));
+    }
+  };
+
+  const handleRemoveSkill = (idToRemove: number) => {
+    setProfileData(prev => ({ ...prev, skills: prev.skills.filter(id => id !== idToRemove) }));
+  };
+
+  const handleSaveChanges = async () => {
     setIsSaving(true);
-    // Simulación de guardado en la API
-    setTimeout(() => {
+    try {
+      // 1. Guardar las habilidades actualizadas en la API
+      await witterApi.put('/users/me/skills', { skillIds: profileData.skills });
+      
+      // 2. Guardar el resto de la información del perfil (campus, carrera, github)
+      await witterApi.put('/users/me', {
+        school: profileData.school,
+        campus: profileData.campus,
+        degree: profileData.degree,
+        egressYear: profileData.egressYear ? Number(profileData.egressYear) : null,
+        licenseId: profileData.licenseId,
+        githubUrl: profileData.githubUrl,
+        linkedinUrl: profileData.linkedinUrl
+      });
+
+      alert('Cambios guardados exitosamente en tu perfil y habilidades.');
+    } catch (error) {
+      console.error('Error al guardar:', error);
+      alert('Ocurrió un error al guardar los cambios.');
+    } finally {
       setIsSaving(false);
-      alert('Cambios guardados exitosamente en tu perfil.');
-    }, 1000);
+    }
   };
 
   return (
@@ -131,7 +182,14 @@ export default function GraduateProfile() {
                 </div>
                 <div className="form-group">
                   <label>Cédula Profesional</label>
-                  <input type="text" name="licenseId" value={profileData.licenseId} onChange={handleProfileChange} />
+                  <input 
+                    type="text" 
+                    name="licenseId" 
+                    value={profileData.licenseId} 
+                    onChange={handleProfileChange} 
+                    placeholder="Solo números (7 o 8 dígitos)"
+                    maxLength={8}
+                  />
                   <div className="form-hint">Para verificación SEP</div>
                 </div>
                 <div className="form-group full">
@@ -152,13 +210,46 @@ export default function GraduateProfile() {
               
               <div className="divider"></div>
               
-              {/* Renderizado de Etiquetas (Tags) */}
+              {/* Renderizado de Etiquetas (Tags) Dinámico */}
               <div>
-                <label style={{ display: 'block', marginBottom: '8px' }}>Habilidades validadas</label>
-                <div style={{ display: 'flex', flexWrap: 'wrap' }}>
-                  {profileData.skills.map((skill, index) => (
-                    <span key={index} className="tag">{skill}</span>
-                  ))}
+                <label style={{ display: 'block', marginBottom: '8px' }}>Habilidades</label>
+                
+                {/* Selector para agregar nuevas habilidades */}
+                <div style={{ marginBottom: '12px' }}>
+                  <select 
+                    className="form-control" 
+                    style={{ maxWidth: '350px', padding: '8px', borderRadius: '4px', border: '1px solid var(--gray-300)' }}
+                    onChange={handleAddSkill}
+                    value=""
+                  >
+                    <option value="" disabled>+ Selecciona Habilidades para agregar</option>
+                    {allSkills
+                      .filter(skill => !profileData.skills.includes(skill.id))
+                      .map(skill => (
+                        <option key={skill.id} value={skill.id}>{skill.name}</option>
+                    ))}
+                  </select>
+                </div>
+
+                {/* Lista de chips seleccionados */}
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
+                  {profileData.skills.length === 0 && <span style={{ fontSize: '13px', color: 'var(--gray-400)' }}>Aún no has agregado habilidades.</span>}
+                  
+                  {profileData.skills.map((skillId, index) => {
+                    const skillName = allSkills.find(s => s.id === skillId)?.name || `Skill ${skillId}`;
+                    return (
+                      <span key={index} className="tag" style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                        {skillName}
+                        <button 
+                          type="button" 
+                          onClick={() => handleRemoveSkill(skillId)}
+                          style={{ background: 'transparent', border: 'none', color: 'currentcolor', cursor: 'pointer', opacity: 0.7, padding: 0, fontWeight: 'bold' }}
+                        >
+                          ✕
+                        </button>
+                      </span>
+                    );
+                  })}
                 </div>
               </div>
             </div>

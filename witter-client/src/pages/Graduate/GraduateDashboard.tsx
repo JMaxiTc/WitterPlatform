@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import witterApi from '../api/witterApi'; // <-- Importamos nuestra API configurada
+import witterApi from '../../api/witterApi'; // <-- Importamos nuestra API configurada
 
 // Interfaces basadas en la estructura de tu base de datos y diseño
 interface AssignedProject {

@@ -1,13 +1,14 @@
 import { useState } from 'react';
-import witterApi from '../api/witterApi';
+import witterApi from '../../api/witterApi';
 import { useNavigate } from 'react-router-dom';
 
 interface LoginProps {
   setAuth: (auth: boolean) => void;
   setRole: (role: 'Company' | 'Graduate') => void;
+  setName: (name: string) => void;
 }
 
-export default function Login({ setAuth, setRole }: LoginProps) {
+export default function Login({ setAuth, setRole, setName }: LoginProps) {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
@@ -27,8 +28,12 @@ export default function Login({ setAuth, setRole }: LoginProps) {
 
       localStorage.setItem('token', token);
       localStorage.setItem('role', role);
+
+      const userNameToSave = response.data.fullName || response.data.email || 'Mi Perfil';
+      localStorage.setItem('userName', userNameToSave);
       
       setRole(role);
+      setName(userNameToSave);
       setAuth(true);
 
       if (role === 'Company') {

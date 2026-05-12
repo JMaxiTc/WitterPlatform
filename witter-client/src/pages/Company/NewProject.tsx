@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import witterApi from '../api/witterApi';
+import witterApi from '../../api/witterApi';
 import { useNavigate } from 'react-router-dom';
 
 // Catálogo de prueba para las habilidades (igual al de egresados)
@@ -224,6 +224,12 @@ export default function NewProject() {
                     <span>Restante: <span className="code">${remainingAmt.toLocaleString('es-MX')}</span></span>
                   </div>
                 </div>
+                 {totalAssigned > budgetNum && (
+                  <div className="alert alert-warn" style={{ marginBottom: '14px', padding: '10px', fontSize: '13px' }}>
+                    <span>⚠</span>
+                    <span>El total de los hitos (${totalAssigned.toLocaleString('es-MX')}) supera el presupuesto del proyecto (${budgetNum.toLocaleString('es-MX')}).</span>
+                  </div>
+                )}
 
                 <div className="milestone-list">
                   {milestones.map((m, index) => (

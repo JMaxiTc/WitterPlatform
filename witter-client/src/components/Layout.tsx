@@ -29,16 +29,16 @@ export default function Layout({ children, role, userName, onLogout }: LayoutPro
         </div>
         
         <div className="sidebar-role">
-          {role === 'Company' ? 'Vista Empresa' : 'Vista Egresado'}
+          {role === 'Company' ? 'Vista Empresa' : role === 'Admin' ? 'Vista Administrador' : 'Vista Egresado'}
         </div>
         
         <div className="sidebar-user">
-          <div className={`avatar ${role === 'Company' ? 'avatar-empresa' : 'avatar-egresado'}`}>
+          <div className={`avatar ${role === 'Company' ? 'avatar-empresa' : role === 'Admin' ? 'avatar-admin' : 'avatar-egresado'}`} style={role === 'Admin' ? { background: 'var(--red-600)' } : {}}>
             {userName.substring(0, 2).toUpperCase()}
           </div>
           <div>
             <div className="user-name">{userName}</div>
-            <div className="user-role">{role === 'Company' ? 'Cuenta Empresarial' : 'Egresado'}</div>
+            <div className="user-role">{role === 'Company' ? 'Cuenta Empresarial' : role === 'Admin' ? 'Administrador' : 'Egresado'}</div>
           </div>
         </div>
 

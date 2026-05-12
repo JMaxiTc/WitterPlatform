@@ -3615,23 +3615,23 @@
     ]
   },
   "packageFolders": {
-    "C:\\Users\\LuisM\\.nuget\\packages\\": {},
+    "C:\\Users\\chtprro\\.nuget\\packages\\": {},
     "C:\\Program Files (x86)\\Microsoft Visual Studio\\Shared\\NuGetPackages": {}
   },
   "project": {
     "version": "1.0.0",
     "restore": {
-      "projectUniqueName": "C:\\Users\\LuisM\\Music\\WitterPlatform\\Witter.Api\\Witter.Api.csproj",
+      "projectUniqueName": "C:\\Users\\chtprro\\Documents\\8vo Semestre\\WITTER\\WitterPlatform\\Witter.Api\\Witter.Api.csproj",
       "projectName": "Witter.Api",
-      "projectPath": "C:\\Users\\LuisM\\Music\\WitterPlatform\\Witter.Api\\Witter.Api.csproj",
-      "packagesPath": "C:\\Users\\LuisM\\.nuget\\packages\\",
-      "outputPath": "C:\\Users\\LuisM\\Music\\WitterPlatform\\Witter.Api\\obj\\",
+      "projectPath": "C:\\Users\\chtprro\\Documents\\8vo Semestre\\WITTER\\WitterPlatform\\Witter.Api\\Witter.Api.csproj",
+      "packagesPath": "C:\\Users\\chtprro\\.nuget\\packages\\",
+      "outputPath": "C:\\Users\\chtprro\\Documents\\8vo Semestre\\WITTER\\WitterPlatform\\Witter.Api\\obj\\",
       "projectStyle": "PackageReference",
       "fallbackFolders": [
         "C:\\Program Files (x86)\\Microsoft Visual Studio\\Shared\\NuGetPackages"
       ],
       "configFilePaths": [
-        "C:\\Users\\LuisM\\AppData\\Roaming\\NuGet\\NuGet.Config",
+        "C:\\Users\\chtprro\\AppData\\Roaming\\NuGet\\NuGet.Config",
         "C:\\Program Files (x86)\\NuGet\\Config\\Microsoft.VisualStudio.FallbackLocation.config",
         "C:\\Program Files (x86)\\NuGet\\Config\\Microsoft.VisualStudio.Offline.config"
       ],

@@ -38,10 +38,33 @@ namespace Witter.Api.Controllers
                 return Unauthorized(new { Message = "Tu cuenta de empresa está en revisión por el Superusuario. Te notificaremos pronto." });
             }
 
+            // Obtener el nombre correspondiente al perfil
+            string fullName = user.Email;
+            if (user.UserRole == "Graduate")
+            {
+                var profile = await _context.GraduateProfiles.FirstOrDefaultAsync(p => p.UserId == user.Id);
+                if (profile != null) fullName = $"{profile.FirstName} {profile.LastName}";
+            }
+            else if (user.UserRole == "Company")
+            {
+                var profile = await _context.CompanyProfiles.FirstOrDefaultAsync(p => p.UserId == user.Id);
+                if (profile != null) fullName = profile.CompanyName;
+            }
+            else if (user.UserRole == "Admin")
+            {
+                // Administradores no tienen tabla de perfil, usamos el inicio del correo (antes del @)
+                fullName = user.Email.Split('@')[0];
+                // Mayus la primera letra para mejor presentación
+                if (!string.IsNullOrEmpty(fullName))
+                {
+                    fullName = char.ToUpper(fullName[0]) + fullName.Substring(1);
+                }
+            }
+
             // Generar el Token JWT usando los datos reales del usuario
             var token = GenerateJwtToken(user.Id.ToString(), user.Email, user.UserRole);
 
-            return Ok(new { Token = token, Role = user.UserRole, UserId = user.Id });
+            return Ok(new { Token = token, Role = user.UserRole, UserId = user.Id, FullName = fullName });
         }
 
         private string GenerateJwtToken(string userId, string email, string role)

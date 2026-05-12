@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
-import witterApi from '../api/witterApi';
+import witterApi from '../../api/witterApi';
 
 export default function RegisterCompany() {
   const navigate = useNavigate();
@@ -99,10 +99,10 @@ export default function RegisterCompany() {
             {isLoading ? 'Enviando solicitud...' : 'Solicitar Cuenta de Empresa'}
           </button>
         </form>
-        <div style={{ textAlign: 'center', marginTop: '20px', fontSize: '13px' }}>
-          <span style={{ color: 'var(--gray-500)' }}>¿Eres egresado? </span>
-          <Link to="/register" className="link">Regístrate como talento</Link>
-        </div>
+          <div style={{ textAlign: 'center', marginTop: '20px', fontSize: '13px' }}>
+            <span style={{ color: 'var(--gray-500)' }}>¿Ya tienes cuenta? </span>
+            <Link to="/login" className="link">Inicia sesión aquí</Link>
+          </div>
       </div>
     </div>
   );

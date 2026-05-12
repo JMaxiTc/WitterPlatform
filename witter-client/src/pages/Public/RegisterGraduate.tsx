@@ -1,24 +1,13 @@
 import { useState } from 'react';
-import witterApi from '../api/witterApi';
+import witterApi from '../../api/witterApi';
 import { useNavigate, Link } from 'react-router-dom';
 
-// Simulamos el catálogo de Skills que tienes en tu tabla de SQL Server
-const SKILLS_CATALOG = [
-  { id: 1, name: 'C#' },
-  { id: 2, name: 'React' },
-  { id: 3, name: 'Python' },
-  { id: 4, name: 'SQL Server' },
-  { id: 5, name: 'Docker' },
-  { id: 6, name: 'Git' },
-  { id: 7, name: 'Node.js' }
-];
-
-export default function Register() {
+export default function RegisterGraduate() {
   const navigate = useNavigate();
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
   
-  // Estado inicial que coincide con el GraduateRegisterDto de .NET
+  // Estado inicial que coincide con el GraduateRegisterDto de .NET (sin skills)
   const [formData, setFormData] = useState({
     firstName: '',
     lastName: '',
@@ -27,24 +16,12 @@ export default function Register() {
     dateOfBirth: '',
     school: 'Tecnológico de Colima',
     degree: 'Ingeniería Informática',
-    githubUrl: '',
-    skillIds: [] as number[]
+    githubUrl: ''
   });
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
     setFormData(prev => ({ ...prev, [name]: value }));
-  };
-
-  const handleSkillToggle = (skillId: number) => {
-    setFormData(prev => {
-      const hasSkill = prev.skillIds.includes(skillId);
-      if (hasSkill) {
-        return { ...prev, skillIds: prev.skillIds.filter(id => id !== skillId) };
-      } else {
-        return { ...prev, skillIds: [...prev.skillIds, skillId] };
-      }
-    });
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -132,21 +109,6 @@ export default function Register() {
                 <input type="text" name="githubUrl" placeholder="github.com/tu-usuario" autoComplete="off" value={formData.githubUrl} onChange={handleInputChange} required />
               </div>
             </div>
-            <div className="form-group full">
-              <label>Lenguajes y Herramientas (Selecciona los que dominas)</label>
-              <div style={{ display: 'flex', flexWrap: 'wrap', gap: '10px', marginTop: '8px' }}>
-                {SKILLS_CATALOG.map(skill => (
-                  <label key={skill.id} style={{ display: 'flex', alignItems: 'center', gap: '6px', cursor: 'pointer', fontSize: '13px', textTransform: 'none', color: 'var(--gray-700)', fontWeight: '500' }}>
-                    <input 
-                      type="checkbox" 
-                      checked={formData.skillIds.includes(skill.id)}
-                      onChange={() => handleSkillToggle(skill.id)}
-                    />
-                    {skill.name}
-                  </label>
-                ))}
-              </div>
-            </div>
           </div>
 
           <button type="submit" className="btn btn-primary btn-lg" style={{ width: '100%', justifyContent: 'center' }} disabled={isLoading}>
@@ -158,12 +120,6 @@ export default function Register() {
           <div style={{ textAlign: 'center', marginTop: '20px', fontSize: '13px' }}>
             <span style={{ color: 'var(--gray-500)' }}>¿Ya tienes cuenta? </span>
             <Link to="/login" className="link">Inicia sesión aquí</Link>
-          </div>
-
-          {/* NUEVO: Enlace hacia el Registro de Empresas */}
-          <div style={{ textAlign: 'center', marginTop: '10px', fontSize: '13px' }}>
-            <span style={{ color: 'var(--gray-500)' }}>¿Representas a una empresa? </span>
-            <Link to="/register/company" className="link">Regístrate como Organización</Link>
           </div>
 
         </div>

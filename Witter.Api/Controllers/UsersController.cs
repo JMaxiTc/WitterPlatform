@@ -183,5 +183,82 @@ namespace Witter.Api.Controllers
 
             return BadRequest(new { Message = "Rol de usuario desconocido." });
         }
+
+        [Authorize]
+        [HttpPut("me")]
+        public async Task<IActionResult> UpdateMyProfile([FromBody] UpdateGraduateProfileDto dto)
+        {
+            var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value 
+                              ?? User.FindFirst("id")?.Value; 
+
+            if (string.IsNullOrEmpty(userIdClaim) || !Guid.TryParse(userIdClaim, out Guid userId))
+            {
+                return Unauthorized(new { Message = "Token inválido o falta el ID del usuario." });
+            }
+
+            var user = await _context.Users.FindAsync(userId);
+            if (user == null) 
+                return NotFound(new { Message = "Usuario no encontrado." });
+
+            if (user.UserRole == "Graduate")
+            {
+                var profile = await _context.GraduateProfiles.FirstOrDefaultAsync(p => p.UserId == userId);
+                if (profile == null) return NotFound(new { Message = "Perfil de egresado no encontrado." });
+
+                // Actualizar los campos permitidos
+                if (dto.School != null) profile.School = dto.School;
+                if (dto.Campus != null) profile.Campus = dto.Campus;
+                if (dto.Degree != null) profile.Degree = dto.Degree;
+                if (dto.EgressYear != null) profile.EgressYear = dto.EgressYear;
+                if (dto.LicenseId != null) profile.LicenseId = dto.LicenseId;
+                if (dto.Bio != null) profile.Bio = dto.Bio;
+                if (dto.AvatarUrl != null) profile.AvatarUrl = dto.AvatarUrl;
+                if (dto.PortfolioUrl != null) profile.PortfolioUrl = dto.PortfolioUrl;
+                if (dto.GithubUrl != null) profile.GithubUrl = dto.GithubUrl;
+                if (dto.LinkedinUrl != null) profile.LinkedinUrl = dto.LinkedinUrl;
+                if (dto.StripeAccId != null) profile.StripeAccId = dto.StripeAccId;
+
+                await _context.SaveChangesAsync();
+                return Ok(new { Message = "Perfil actualizado correctamente." });
+            }
+
+            return BadRequest(new { Message = "La actualización de perfil no está configurada para este rol." });
+        }
+
+        [Authorize]
+        [HttpPut("me/skills")]
+        public async Task<IActionResult> UpdateMySkills([FromBody] UpdateSkillsDto dto)
+        {
+            var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value 
+                              ?? User.FindFirst("id")?.Value; 
+
+            if (string.IsNullOrEmpty(userIdClaim) || !Guid.TryParse(userIdClaim, out Guid userId))
+            {
+                return Unauthorized(new { Message = "Token inválido o falta el ID del usuario." });
+            }
+
+            var user = await _context.Users.FindAsync(userId);
+            if (user == null || user.UserRole != "Graduate") 
+                return BadRequest(new { Message = "Solo los egresados pueden actualizar sus habilidades." });
+
+            // 1. Eliminar habilidades actuales
+            var existingSkills = await _context.GraduateSkills.Where(gs => gs.GraduateId == userId).ToListAsync();
+            _context.GraduateSkills.RemoveRange(existingSkills);
+
+            // 2. Agregar las nuevas habilidades
+            if (dto.SkillIds != null && dto.SkillIds.Any())
+            {
+                var newSkills = dto.SkillIds.Select(skillId => new GraduateSkill
+                {
+                    GraduateId = userId,
+                    SkillId = skillId
+                }).ToList();
+                _context.GraduateSkills.AddRange(newSkills);
+            }
+
+            await _context.SaveChangesAsync();
+
+            return Ok(new { Message = "Habilidades actualizadas correctamente." });
+        }
     }
 }

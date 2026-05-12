@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import witterApi from '../api/witterApi';
+import witterApi from '../../api/witterApi';
 
 export default function CompanyProfile() {
   const [isSaving, setIsSaving] = useState(false);
