@@ -1,6 +1,7 @@
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { useState, useEffect } from 'react';
 import Layout from './components/Layout';
+import witterApi from './api/witterApi';
 
 // RUTAS PUBLICAS
 import Login from './pages/Public/Login';
@@ -31,23 +32,36 @@ export default function App() {
 
   // Al cargar la app, verificamos si hay un token guardado
   useEffect(() => {
-    const token = localStorage.getItem('token');
-    const role = localStorage.getItem('role') as 'Company' | 'Graduate' | 'Admin';
+    // Ya no dependemos del token en localStorage, solo del rol que guardamos en el login
+    const role = localStorage.getItem('role') as 'Company' | 'Graduate' | 'Admin' | null;
     // Recuperamos el nombre del usuario para mostrarlo
     const name = localStorage.getItem('userName') || (role === 'Company' ? 'Empresa' : 'Egresado');
-    if (token && role) {
+    
+    if (role) {
       setIsAuthenticated(true);
       setUserRole(role);
       setUserName(name);
+    } else {
+      setIsAuthenticated(false);
+      setUserRole(null);
     }
   }, []);
 
   // Función para cerrar sesión que pasaremos al Layout
-  const handleLogout = () => {
-    localStorage.removeItem('token');
-    localStorage.removeItem('role');
-    localStorage.removeItem('userName');
-    setIsAuthenticated(false);
+  const handleLogout = async () => {
+    try {
+      await witterApi.post('/auth/logout');
+    } catch (e) {
+      console.error('Error cerrando sesión en el backend', e);
+    } finally {
+      localStorage.removeItem('role');
+      localStorage.removeItem('userName');
+      localStorage.removeItem('fullName');
+      localStorage.removeItem('userId');
+      setIsAuthenticated(false);
+      setUserRole(null);
+      // Redirección manejada por componentes 
+    }
     setUserRole(null);
     setUserName('');
   };

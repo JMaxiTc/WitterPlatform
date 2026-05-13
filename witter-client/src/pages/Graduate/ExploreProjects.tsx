@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import witterApi from '../../api/witterApi';
 
 // 1. Interfaces actualizadas para incluir los hitos
@@ -21,17 +22,14 @@ interface ProjectDisplay {
   levelRequired: string;
   skills: string[];
   createdAt: string;
-  milestones?: Milestone[]; // Opcional porque en la lista general no vienen, solo en el detalle
+  milestones?: Milestone[];
 }
 
 export default function ExploreProjects() {
+  const navigate = useNavigate();
   const [projects, setProjects] = useState<ProjectDisplay[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   
-  // 2. Estados para el Modal
-  const [selectedProject, setSelectedProject] = useState<ProjectDisplay | null>(null);
-  const [isModalLoading, setIsModalLoading] = useState(false);
-
   useEffect(() => {
     fetchProjects();
   }, []);
@@ -46,21 +44,6 @@ export default function ExploreProjects() {
       setIsLoading(false);
     }
   };
-
-  // 3. Función para abrir el modal y cargar los hitos
-  const handleOpenDetails = async (projectId: number) => {
-    setIsModalLoading(true);
-    try {
-      const response = await witterApi.get(`/projects/${projectId}`);
-      setSelectedProject(response.data);
-    } catch (error) {
-      console.error("Error al cargar detalles del proyecto:", error);
-    } finally {
-      setIsModalLoading(false);
-    }
-  };
-
-  const closeModal = () => setSelectedProject(null);
 
   return (
     <>
@@ -112,9 +95,9 @@ export default function ExploreProjects() {
                       ${proj.budget.toLocaleString('es-MX')} MXN
                     </div>
                   </div>
-                  {/* BOTÓN ACTUALIZADO PARA ABRIR EL MODAL */}
-                  <button className="btn btn-primary btn-sm" onClick={() => handleOpenDetails(proj.id)}>
-                    {isModalLoading ? 'Cargando...' : 'Ver Detalles'}
+                  {/* Navegar a la página completa de Detalles del Proyecto */}
+                  <button className="btn btn-primary btn-sm" onClick={() => navigate(`/graduate/projects/${proj.id}`)}>
+                    Ver Detalles
                   </button>
                 </div>
               </div>
@@ -122,68 +105,6 @@ export default function ExploreProjects() {
           </div>
         )}
       </div>
-
-      {/* 4. EL MODAL (VENTANA EMERGENTE) */}
-      {selectedProject && (
-        <div style={{
-          position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
-          backgroundColor: 'rgba(10, 22, 40, 0.6)', backdropFilter: 'blur(4px)',
-          zIndex: 1000, display: 'flex', justifyContent: 'center', alignItems: 'center', padding: '20px'
-        }}>
-          <div className="card" style={{ 
-            width: '100%', maxWidth: '700px', maxHeight: '90vh', overflowY: 'auto', 
-            position: 'relative', padding: '30px', borderRadius: '16px', boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1)'
-          }}>
-            
-            {/* Botón de cerrar */}
-            <button onClick={closeModal} style={{
-              position: 'absolute', top: '20px', right: '20px', background: 'none', border: 'none',
-              fontSize: '24px', cursor: 'pointer', color: 'var(--gray-400)'
-            }}>✕</button>
-
-            <span style={{ fontSize: '12px', fontWeight: 600, color: 'var(--blue-600)', textTransform: 'uppercase' }}>{selectedProject.category}</span>
-            <h2 style={{ fontSize: '24px', color: 'var(--blue-950)', marginTop: '4px', marginBottom: '8px' }}>{selectedProject.title}</h2>
-            <div style={{ fontSize: '14px', color: 'var(--gray-500)', marginBottom: '20px' }}>
-              Publicado por <strong>{selectedProject.companyName}</strong> · Duración est.: {selectedProject.durationDays} días
-            </div>
-
-            <div className="form-section-title">Descripción del Proyecto</div>
-            <p style={{ fontSize: '15px', color: 'var(--gray-600)', lineHeight: '1.6', marginBottom: '24px', whiteSpace: 'pre-wrap' }}>
-              {selectedProject.description}
-            </p>
-
-            <div className="form-section-title">Hitos Financieros (Pagos en Escrow)</div>
-            <div style={{ background: 'var(--gray-50)', border: '1px solid var(--gray-200)', borderRadius: '8px', padding: '16px', marginBottom: '24px' }}>
-              {selectedProject.milestones?.map((milestone) => (
-                <div key={milestone.id} style={{ display: 'flex', justifyContent: 'space-between', padding: '12px 0', borderBottom: '1px solid var(--gray-200)' }}>
-                  <div>
-                    <div style={{ fontWeight: 600, color: 'var(--blue-950)' }}>
-                      Paso {milestone.stepNumber}: {milestone.title}
-                    </div>
-                    <div style={{ fontSize: '13px', color: 'var(--gray-500)', marginTop: '4px' }}>{milestone.description}</div>
-                  </div>
-                  <div style={{ fontWeight: 700, color: 'var(--green-600)', fontSize: '16px', whiteSpace: 'nowrap', marginLeft: '16px' }}>
-                    ${milestone.amount.toLocaleString('es-MX')}
-                  </div>
-                </div>
-              ))}
-              <div style={{ display: 'flex', justifyContent: 'space-between', padding: '12px 0 0 0', marginTop: '4px' }}>
-                <div style={{ fontWeight: 700, color: 'var(--blue-950)' }}>Presupuesto Total Protegido</div>
-                <div style={{ fontWeight: 800, color: 'var(--blue-950)', fontSize: '18px' }}>
-                  ${selectedProject.budget.toLocaleString('es-MX')} MXN
-                </div>
-              </div>
-            </div>
-
-            <div style={{ display: 'flex', gap: '12px', justifyContent: 'flex-end', marginTop: '30px' }}>
-              <button className="btn btn-ghost" onClick={closeModal}>Cancelar</button>
-              <button className="btn btn-primary" onClick={() => alert("¡Lógica de postulación en construcción!")}>
-                Postularme ahora
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
     </>
   );
 }

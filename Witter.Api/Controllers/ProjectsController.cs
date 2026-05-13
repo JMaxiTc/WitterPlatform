@@ -99,7 +99,51 @@ namespace Witter.Api.Controllers
 
             return Ok(projects);
         }
-        // --- NUEVO: OBTENER DETALLES DE UN PROYECTO (INCLUYE HITOS) ---
+        // --- ENDPOINT PARA POSTULARSE A UN PROYECTO ---
+        [HttpPost("{id}/apply")]
+        [Authorize(Roles = "Graduate")]
+        public async Task<IActionResult> ApplyToProject(int id)
+        {
+            // 1. Obtener el UserId del token JWT
+            var userIdStr = User.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? User.FindFirst("id")?.Value;
+            if (!Guid.TryParse(userIdStr, out Guid userId)) 
+                return Unauthorized(new { Message = "Sesión inválida." });
+
+            // 2. Verificar que el proyecto exista y esté abierto
+            var project = await _context.Projects.FirstOrDefaultAsync(p => p.Id == id);
+            if (project == null) 
+                return NotFound(new { Message = "Proyecto no encontrado." });
+                
+            if (project.Status != "Open") 
+                return BadRequest(new { Message = "El proyecto ya no acepta postulaciones." });
+
+            // 3. Buscar el Perfil del Egresado (GraduateProfile)
+            var graduateProfile = await _context.GraduateProfiles.FirstOrDefaultAsync(gp => gp.UserId == userId);
+            if (graduateProfile == null)
+                return NotFound(new { Message = "Perfil de egresado no encontrado." });
+
+            // 4. Evitar postulaciones duplicadas
+            bool alreadyApplied = await _context.Applications
+                .AnyAsync(a => a.ProjectId == id && a.GraduateId == graduateProfile.UserId);
+
+            if (alreadyApplied)
+                return BadRequest(new { Message = "Ya estás postulado a este proyecto." });
+
+            // 5. Crear la Postulación (Application)
+            var application = new Application
+            {
+                ProjectId = id,
+                GraduateId = graduateProfile.UserId,
+                AppliedAt = DateTime.UtcNow,
+                ApplicationStatus = "Pending" // El Default de tu modelo
+            };
+
+            _context.Applications.Add(application);
+            await _context.SaveChangesAsync();
+
+            return Ok(new { Message = "Postulación enviada correctamente." });
+        }
+        // --- OBTENER DETALLES DE UN PROYECTO ---
         [HttpGet("{id}")]
         [Authorize] // Egresados y Empresas pueden verlo
         public async Task<IActionResult> GetProjectDetails(int id)

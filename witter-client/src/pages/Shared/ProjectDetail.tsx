@@ -1,240 +1,159 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { useParams, useNavigate } from 'react-router-dom';
+import witterApi from '../../api/witterApi';
 
-// Interfaces basadas en la maqueta
 interface MilestoneStep {
-  step: number;
+  id: number;
+  stepNumber: number;
   title: string;
   description: string;
   amount: number;
-  status: 'done' | 'active' | 'pending';
-  currentDeliverable?: {
-    repoUrl: string;
-    commits: number;
-    statusText: string;
-  };
+  status?: string; // Todavía lo podemos simular o traer de BD según tu modelo
 }
 
-interface Transaction {
+interface ProjectData {
   id: number;
-  type: 'in' | 'out' | 'vc' | 'escrow';
+  title: string;
+  companyName: string;
+  createdAt: string;
+  budget: number;
   description: string;
-  date: string;
-  amount: number | string;
+  status: string;
+  milestones: MilestoneStep[];
+  skills: string[];
 }
 
 export default function ProjectDetail() {
-  const [activeTab, setActiveTab] = useState('Hitos');
+  const { id } = useParams<{ id: string }>();
+  const navigate = useNavigate();
+  
+  // Estados para la API
+  const [project, setProject] = useState<ProjectData | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState('');
+  
+  // Estados para aplicar
+  const [isApplying, setIsApplying] = useState(false);
+  const [applyMessage, setApplyMessage] = useState('');
+  
+  const userRole = localStorage.getItem('role');
 
-  // Mock Data basada en la Sección 6 de la maqueta
-  const project = {
-    title: 'Sistema CRM Integrado',
-    company: 'TechCorp S.A. de C.V.',
-    startDate: '01/05/2026',
-    totalBudget: 72000,
-    status: 'Activo',
-    progressPct: 50,
-    completedAmount: 36000
+  useEffect(() => {
+    const fetchProjectDetails = async () => {
+      try {
+        const response = await witterApi.get(`/projects/${id}`);
+        setProject(response.data);
+      } catch (err: any) {
+        setError(err.response?.data?.message || 'Error al cargar el proyecto.');
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    
+    if (id) fetchProjectDetails();
+  }, [id]);
+
+  const handleApply = async () => {
+    setIsApplying(true);
+    setApplyMessage('');
+    try {
+      const response = await witterApi.post(`/projects/${id}/apply`);
+      setApplyMessage(response.data.message || 'Te has postulado con éxito.');
+      // Opcional: podrías recargar datos o bloquear el botón aquí
+    } catch (err: any) {
+      setApplyMessage(err.response?.data?.message || 'Hubo un error al postularte.');
+    } finally {
+      setIsApplying(false);
+    }
   };
 
-  const milestones: MilestoneStep[] = [
-    {
-      step: 1,
-      title: 'Sprint 1 — Diseño de Base de Datos',
-      description: 'Modelo entidad-relación, DDL y documentación del esquema.',
-      amount: 18000,
-      status: 'done'
-    },
-    {
-      step: 2,
-      title: 'Sprint 2 — API REST',
-      description: 'Endpoints CRUD, autenticación JWT, documentación Swagger.',
-      amount: 18000,
-      status: 'active',
-      currentDeliverable: {
-        repoUrl: 'github.com/anatorres-dev/crm-api/pull/42',
-        commits: 8,
-        statusText: 'Pendiente empresa'
-      }
-    },
-    {
-      step: 3,
-      title: 'Sprint 3 — Frontend React',
-      description: 'Componentes UI, integración con API, pruebas unitarias.',
-      amount: 18000,
-      status: 'pending'
-    },
-    {
-      step: 4,
-      title: 'Sprint 4 — Deploy & QA',
-      description: 'Despliegue en producción, pruebas E2E, entrega final.',
-      amount: 18000,
-      status: 'pending'
-    }
-  ];
-
-  const transactions: Transaction[] = [
-    { id: 1, type: 'in', description: 'Sprint 1 — Pago liberado', date: '01/06/2026 · 14:32 CST', amount: 18000 },
-    { id: 2, type: 'out', description: 'Comisión WITTER (5%)', date: '01/06/2026 · 14:32 CST', amount: -900 },
-    { id: 3, type: 'vc', description: 'Sprint 1 — Hito completado · Credencial emitida', date: '31/05/2026 · 11:15 CST', amount: 'VC emitida' },
-    { id: 4, type: 'escrow', description: 'Depósito inicial en Escrow — TechCorp', date: '01/05/2026 · 09:00 CST', amount: 72000 }
-  ];
+  if (isLoading) return <div style={{ padding: '40px', textAlign: 'center' }}>Cargando proyecto...</div>;
+  if (error || !project) return <div style={{ padding: '40px', textAlign: 'center', color: 'red' }}>{error}</div>;
 
   return (
     <>
-      <div className="topbar">
-        <div>
-          <div className="page-title">{project.title}</div>
-          <div className="page-sub">{project.company} · Inicio {project.startDate}</div>
-        </div>
-        <div className="topbar-actions">
-          <span className="badge badge-activo">{project.status}</span>
-          <span className="code" style={{ fontSize: '13px' }}>${project.totalBudget.toLocaleString('es-MX')} MXN total</span>
-        </div>
-      </div>
-
-      <div className="content">
-        {/* Pestañas Internas */}
-        <div className="inner-tabs">
-          {['Hitos', 'Entregables', 'Transacciones', 'Mensajes'].map(tab => (
-            <div 
-              key={tab} 
-              className={`inner-tab ${activeTab === tab ? 'active' : ''}`}
-              onClick={() => setActiveTab(tab)}
-            >
-              {tab}
-            </div>
-          ))}
-        </div>
-
-        {activeTab === 'Hitos' && (
-          <div className="grid-2" style={{ alignItems: 'start' }}>
-            
-            {/* COLUMNA IZQUIERDA: Progreso de Hitos */}
-            <div className="card">
-              <div className="card-header">
-                <div>
-                  <div className="card-title">Progreso de Hitos</div>
-                  <div className="card-sub">Hito 2 activo de 4 en total</div>
-                </div>
-              </div>
-              
-              <div className="progress-wrap" style={{ marginBottom: '20px' }}>
-                <div className="progress-label">
-                  <span>{project.progressPct}% completado</span>
-                  <span>${project.completedAmount.toLocaleString('es-MX')} / ${project.totalBudget.toLocaleString('es-MX')} MXN</span>
-                </div>
-                <div className="progress-bar" style={{ height: '8px' }}>
-                  <div className="progress-fill progress-blue" style={{ width: `${project.progressPct}%` }}></div>
-                </div>
-              </div>
-
-              <div className="milestone-steps">
-                {milestones.map((ms, index) => (
-                  <div className="ms-step" key={ms.step}>
-                    <div className="ms-dot-wrap">
-                      <div className={`ms-dot ${ms.status === 'done' ? 'ms-dot-done' : ms.status === 'active' ? 'ms-dot-active' : 'ms-dot-pending'}`}>
-                        {ms.status === 'done' ? '✓' : ms.step}
-                      </div>
-                      {index < milestones.length - 1 && <div className="ms-line"></div>}
-                    </div>
-                    <div className="ms-body">
-                      <div className="ms-title" style={{ color: ms.status === 'pending' ? 'var(--gray-400)' : '' }}>
-                        {ms.title} 
-                        {ms.status === 'active' && <span className="badge badge-pendiente" style={{ marginLeft: '6px' }}>En revisión</span>}
-                      </div>
-                      <div className="ms-desc">{ms.description}</div>
-                      
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: ms.status === 'active' ? '10px' : '0' }}>
-                        <div className="ms-amount" style={{ color: ms.status === 'pending' ? 'var(--gray-300)' : '' }}>
-                          ${ms.amount.toLocaleString('es-MX')} MXN
-                        </div>
-                        {ms.status === 'done' && <span className="badge badge-liberado">Liberado</span>}
-                      </div>
-
-                      {/* Caja de Entregable Actual para el hito activo */}
-                      {ms.status === 'active' && ms.currentDeliverable && (
-                        <div className="ms-current">
-                          <div style={{ fontSize: '11px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '1px', color: 'var(--blue-600)', marginBottom: '8px' }}>
-                            Entregable Actual
-                          </div>
-                          <a href={`https://${ms.currentDeliverable.repoUrl}`} target="_blank" rel="noreferrer" className="gh-link" style={{ marginBottom: '8px', display: 'flex' }}>
-                            <div className="gh-dot"></div>
-                            <span>{ms.currentDeliverable.repoUrl}</span>
-                            <span style={{ marginLeft: 'auto', opacity: 0.6 }}>→</span>
-                          </a>
-                          <div style={{ fontSize: '12px', color: 'var(--gray-400)', marginBottom: '10px' }}>
-                            Pull Request abierto · {ms.currentDeliverable.commits} commits · Revisado por: {ms.currentDeliverable.statusText}
-                          </div>
-                          <button className="btn btn-primary btn-sm" style={{ width: '100%', justifyContent: 'center' }}>
-                            Subir nueva versión
-                          </button>
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-
-            {/* COLUMNA DERECHA: Transacciones y Resumen */}
+      <div className="content" style={{ paddingTop: '20px' }}>
+        {/* Encabezado del Proyecto (Ya no sobrepuesto en la topbar) */}
+        <div style={{ marginBottom: '32px' }}>
+          <button className="btn" style={{ marginBottom: '24px', background: '#fff', border: '1px solid var(--gray-300)', fontSize: '13px' }} onClick={() => navigate(-1)}>
+            &larr; Volver
+          </button>
+          
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '16px' }}>
             <div>
-              <div className="card" style={{ marginBottom: '16px' }}>
-                <div className="card-header">
-                  <div>
-                    <div className="card-title">Historial de Transacciones</div>
-                    <div className="card-sub">Movimientos registrados en este proyecto</div>
-                  </div>
-                </div>
-                <div className="tx-list">
-                  {transactions.map(tx => (
-                    <div className="tx-item" key={tx.id}>
-                      <div className={`tx-icon ${tx.type === 'in' ? 'tx-in' : tx.type === 'out' ? 'tx-out' : ''}`} style={tx.type === 'escrow' ? { background: 'var(--blue-100)', color: 'var(--blue-700)' } : {}}>
-                        {tx.type === 'in' ? '↓' : tx.type === 'out' ? '⬡' : tx.type === 'escrow' ? '↑' : ''}
-                      </div>
-                      <div className="tx-info">
-                        <div className="tx-desc">{tx.description}</div>
-                        <div className="tx-date">{tx.date}</div>
-                      </div>
-                      {typeof tx.amount === 'number' ? (
-                        <div className={`tx-amount ${tx.amount > 0 && tx.type !== 'escrow' ? 'tx-pos' : tx.amount < 0 ? 'tx-neg' : 'tx-pos'}`}>
-                          {tx.amount > 0 ? '+' : ''}${Math.abs(tx.amount).toLocaleString('es-MX')}
-                        </div>
-                      ) : (
-                        <div className="tx-amount" style={{ fontSize: '11px', color: 'var(--violet-700)', background: 'var(--violet-100)', padding: '4px 8px', borderRadius: '20px', fontWeight: 600 }}>
-                          {tx.amount}
-                        </div>
-                      )}
-                    </div>
-                  ))}
-                </div>
-              </div>
-
-              {/* Resumen Financiero */}
-              <div className="card">
-                <div className="card-title" style={{ marginBottom: '14px' }}>Resumen Financiero del Proyecto</div>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '10px 0', borderBottom: '1px solid var(--gray-100)' }}>
-                    <span style={{ fontSize: '13px', color: 'var(--gray-500)' }}>Total en Escrow</span>
-                    <span className="code">${project.totalBudget.toLocaleString('es-MX')} MXN</span>
-                  </div>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '10px 0', borderBottom: '1px solid var(--gray-100)' }}>
-                    <span style={{ fontSize: '13px', color: 'var(--gray-500)' }}>Pagos recibidos</span>
-                    <span style={{ fontFamily: 'var(--mono)', fontSize: '13px', fontWeight: 600, color: 'var(--green-600)' }}>$18,000 MXN</span>
-                  </div>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '10px 0', borderBottom: '1px solid var(--gray-100)' }}>
-                    <span style={{ fontSize: '13px', color: 'var(--gray-500)' }}>En revisión</span>
-                    <span style={{ fontFamily: 'var(--mono)', fontSize: '13px', fontWeight: 600, color: 'var(--amber-600)' }}>$18,000 MXN</span>
-                  </div>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '10px 0' }}>
-                    <span style={{ fontSize: '13px', color: 'var(--gray-500)' }}>Pendiente (hitos futuros)</span>
-                    <span style={{ fontFamily: 'var(--mono)', fontSize: '13px', fontWeight: 600, color: 'var(--blue-600)' }}>$36,000 MXN</span>
-                  </div>
-                </div>
+              <h1 style={{ fontSize: '28px', fontWeight: 800, color: 'var(--blue-950)', margin: '0 0 8px 0' }}>{project.title}</h1>
+              <div style={{ fontSize: '15px', color: 'var(--gray-500)' }}>
+                <strong>{project.companyName}</strong> · Publicado el {new Date(project.createdAt).toLocaleDateString()}
               </div>
             </div>
             
+            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '8px' }}>
+              {userRole === 'Graduate' && (
+                 <button 
+                   className="btn btn-primary" 
+                   onClick={handleApply} 
+                   disabled={isApplying}
+                   style={{ padding: '12px 24px', fontSize: '15px' }}
+                 >
+                   {isApplying ? 'Enviando...' : 'Postularme a este proyecto'}
+                 </button>
+              )}
+              {applyMessage && <div style={{ fontSize: '13px', fontWeight: 500, color: applyMessage.includes('éxito') ? 'var(--green-600)' : 'red' }}>{applyMessage}</div>}
+            </div>
           </div>
-        )}
+        </div>
+
+        <div className="grid-2" style={{ alignItems: 'start', marginBottom: '24px' }}>
+          <div className="card">
+             <div className="card-title" style={{ marginBottom: '16px' }}>Descripción del Proyecto</div>
+             <p style={{ lineHeight: '1.6', color: 'var(--gray-600)', whiteSpace: 'pre-wrap' }}>{project.description}</p>
+          </div>
+          <div className="card">
+             <div className="card-title" style={{ marginBottom: '16px' }}>Habilidades Requeridas</div>
+             <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
+               {project.skills?.map((skill, idx) => (
+                  <span key={idx} className="badge" style={{ background: 'var(--gray-100)', color: 'var(--gray-600)' }}>{skill}</span>
+               ))}
+               {!project.skills?.length && <span>No especificadas</span>}
+             </div>
+          </div>
+        </div>
+
+        <div className="card">
+          <div className="card-header">
+            <div>
+              <div className="card-title">Hitos Programados</div>
+              <div className="card-sub">{project.milestones?.length || 0} hitos definidos por la empresa</div>
+            </div>
+          </div>
+
+          <div className="milestone-steps" style={{ marginTop: '20px' }}>
+            {project.milestones?.map((ms, index) => (
+              <div className="ms-step" key={ms.id}>
+                <div className="ms-dot-wrap">
+                  <div className="ms-dot ms-dot-pending">{ms.stepNumber}</div>
+                  {index < project.milestones.length - 1 && <div className="ms-line"></div>}
+                </div>
+                <div className="ms-body">
+                  <div className="ms-title">{ms.title}</div>
+                  <div className="ms-desc">{ms.description}</div>
+                  <div className="ms-amount" style={{ color: 'var(--blue-600)', marginTop: '8px' }}>
+                    ${ms.amount.toLocaleString('es-MX')} MXN
+                  </div>
+                </div>
+              </div>
+            ))}
+            {!project.milestones?.length && <p>No hay hitos disponibles para este proyecto.</p>}
+          </div>
+
+          {/* Presupuesto Total movido abajo */}
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '32px', paddingTop: '20px', borderTop: '1px solid var(--gray-200)' }}>
+            <div style={{ fontSize: '16px', fontWeight: 600, color: 'var(--gray-600)' }}>Presupuesto Total del Proyecto</div>
+            <div style={{ fontSize: '24px', fontWeight: 800, color: 'var(--blue-950)' }}>
+              ${project.budget.toLocaleString('es-MX')} MXN
+            </div>
+          </div>
+        </div>
       </div>
     </>
   );

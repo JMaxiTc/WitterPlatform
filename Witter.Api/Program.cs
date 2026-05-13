@@ -1,54 +1,106 @@
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
+using Microsoft.AspNetCore.Authentication.Cookies;
 using System.Text;
 using Microsoft.EntityFrameworkCore;
 using Witter.Api.Data;
 
+// Configuración de Servicios
 var builder = WebApplication.CreateBuilder(args);
 
 // Configurar Entity Framework con SQL Server
 builder.Services.AddDbContext<WitterDbContext>(options =>
     options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
 
-// 1. Configurar JWT Auth & KYC
-var jwtKey = builder.Configuration["Jwt:Key"];
+// Configurar JWT Auth & KYC
+var jwtKey = builder.Configuration["Jwt:Key"] ?? throw new InvalidOperationException("JWT Key is missing");
 var keyBytes = Encoding.UTF8.GetBytes(jwtKey);
 
-builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
-    .AddJwtBearer(options =>
-    {
-        options.TokenValidationParameters = new TokenValidationParameters
-        {
-            ValidateIssuer = true,
-            ValidateAudience = true,
-            ValidateLifetime = true,
-            ValidateIssuerSigningKey = true,
-            ValidIssuer = builder.Configuration["Jwt:Issuer"],
-            ValidAudience = builder.Configuration["Jwt:Audience"],
-            IssuerSigningKey = new SymmetricSecurityKey(keyBytes)
-        };
-    });
+// Configuración de Autenticación JWT y Cookies
+builder.Services.AddAuthentication(options =>
+{
+    options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
+    options.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
+}).AddJwtBearer(options =>
+{
+   options.TokenValidationParameters = new TokenValidationParameters
+   {
+    ValidateIssuer = true,
+    ValidateAudience = true,
+    ValidateLifetime = true,
+    ValidateIssuerSigningKey = true,
+    ValidIssuer = builder.Configuration["Jwt:Issuer"],
+    ValidAudience = builder.Configuration["Jwt:Audience"],
+    IssuerSigningKey = new SymmetricSecurityKey(keyBytes)
+   }; 
+   options.Events = new JwtBearerEvents
+   {
+       OnMessageReceived = context =>
+       {
+           if (context.Request.Cookies.ContainsKey("WitterAuthToken"))
+           {
+               context.Token = context.Request.Cookies["WitterAuthToken"];
+           }
+           return Task.CompletedTask;
+       }
+   };
+   // Permitir el envío de cookies con solicitudes JWT
+}).AddCookie(CookieAuthenticationDefaults.AuthenticationScheme, options =>
+{
+    options.Cookie.Name = "WitterAuthToken";
+    options.Cookie.HttpOnly = true;
+    options.Cookie.SecurePolicy = CookieSecurePolicy.Always;
+    options.Cookie.SameSite = SameSiteMode.Strict;
+    options.Cookie.Path = "/";
+});
 
 builder.Services.AddAuthorization();
 builder.Services.AddControllers();
 
-// 2. Configurar Swagger
+// Configurar Swagger
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
+// Configuración de CORS para permitir solicitudes desde el frontend
 builder.Services.AddCors(options =>
 {
     options.AddPolicy("AllowReactApp", policy =>
     {
-        policy.WithOrigins("http://localhost:5173")
+        policy.WithOrigins("http://localhost:5173") // Dominio del fontend 
               .AllowAnyHeader()
-              .AllowAnyMethod();
+              .AllowAnyMethod()
+              .AllowCredentials(); // Permitir el envio de cookies en solicitudes CORS para la autenticacion
     });
 });
 
+// Protección CSRF
+builder.Services.AddAntiforgery(options =>
+{
+    options.HeaderName = "X-CSRF-TOKEN";
+    options.Cookie.SecurePolicy = CookieSecurePolicy.Always;
+    options.Cookie.HttpOnly = true;
+    options.Cookie.SameSite = SameSiteMode.Strict;
+});
+
+// Configuración de Pipelines HTTP
 var app = builder.Build();
 
-// 3. Configurar el pipeline HTTP
+// Encabezados de Seguridad
+app.Use(async (context, next) =>
+{
+    // Prevenir ataques de Clickjacking previniendo que la aplicacion se cargue en iframes
+    context.Response.Headers.Append("X-Frame-Options","DENY");
+    // Forzar al navegador activar la protección contra XSS
+    context.Response.Headers.Append("X-XSS-Protection", "1; mode=block");
+    // Bloquea el MIME-Sniffing
+    context.Response.Headers.Append("X-Content-Type-Options", "nosniff");
+    // Política de seguridad para cargar contenido o recursos permitidos (solo misma app o Stripe)
+    context.Response.Headers.Append("Content-Security-Policy", "default-src 'self'; script-src 'self'; connect-src 'self' https://api.stripe.com;");
+    context.Response.Headers.Append("Referrer-Policy", "strict-origin-when-cross-origin");
+    await next();
+});
+
+// Configurar el pipeline HTTP
 if (app.Environment.IsDevelopment())
 {
     app.UseSwagger();
@@ -59,10 +111,11 @@ app.UseHttpsRedirection();
 
 app.UseCors("AllowReactApp");
 
-// Primero autentica, luego autoriza
+// Primero Autentica y luego Autoriza
 app.UseAuthentication(); 
 app.UseAuthorization();  
 
 app.MapControllers();
 
+// Corre la Aplicación
 app.Run();

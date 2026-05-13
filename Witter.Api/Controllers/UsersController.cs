@@ -251,7 +251,7 @@ namespace Witter.Api.Controllers
                 var newSkills = dto.SkillIds.Select(skillId => new GraduateSkill
                 {
                     GraduateId = userId,
-                    SkillId = skillId
+                    SkillId = skillId 
                 }).ToList();
                 _context.GraduateSkills.AddRange(newSkills);
             }

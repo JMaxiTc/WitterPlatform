@@ -8,12 +8,12 @@ namespace Witter.Api.Models
     {
         [Key]
         public Guid UserId { get; set; }
-        public string FirstName { get; set; }
-        public string LastName { get; set; }
+        public string? FirstName { get; set; }
+        public string? LastName { get; set; }
         public DateTime DateOfBirth { get; set; }
-        public string School { get; set; }
+        public string? School { get; set; }
         public string? Campus { get; set; }
-        public string Degree { get; set; }
+        public string? Degree { get; set; }
         public int? EgressYear { get; set; }
         public string? LicenseId { get; set; }
         public string? Bio { get; set; }

@@ -5,6 +5,7 @@ using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using System.Text;
 using Witter.Api.Data;
+using Witter.Api.DTOs;
 
 namespace Witter.Api.Controllers
 {
@@ -52,7 +53,7 @@ namespace Witter.Api.Controllers
             }
             else if (user.UserRole == "Admin")
             {
-                // Administradores no tienen tabla de perfil, usamos el inicio del correo (antes del @)
+                // Administradores se usara el inicio del correo (antes del @)
                 fullName = user.Email.Split('@')[0];
                 // Mayus la primera letra para mejor presentación
                 if (!string.IsNullOrEmpty(fullName))
@@ -61,16 +62,57 @@ namespace Witter.Api.Controllers
                 }
             }
 
-            // Generar el Token JWT usando los datos reales del usuario
+            // Generar token JWT con info del usuario
             var token = GenerateJwtToken(user.Id.ToString(), user.Email, user.UserRole);
 
-            return Ok(new { Token = token, Role = user.UserRole, UserId = user.Id, FullName = fullName });
+            Response.Cookies.Delete("WitterAuthToken", new CookieOptions
+            {
+                HttpOnly = true,
+                Secure = true,
+                SameSite = SameSiteMode.Strict,
+                Path = "/"
+            });
+
+            var cookieOptions = new CookieOptions
+            {
+                HttpOnly = true,
+                Secure = true,
+                SameSite = SameSiteMode.Strict,
+                Expires = DateTime.UtcNow.AddHours(2),
+                Path = "/"
+            };
+
+            Response.Cookies.Append("WitterAuthToken", token, cookieOptions);
+
+            return Ok(new {
+                Message = "Login exitoso",
+                Token = token,
+                Role = user.UserRole,
+                UserId = user.Id,
+                FullName = fullName
+                });
+        }
+
+        [HttpPost("logout")]
+        public IActionResult Logout()
+        {
+            // Esto le indica al navegador que la cookie "WitterAuthToken"
+            // ha expirado, obligándolo a borrarla inmediatamente.
+            Response.Cookies.Delete("WitterAuthToken", new CookieOptions
+            {
+                HttpOnly = true,
+                Secure = true,
+                SameSite = SameSiteMode.Strict,
+                Path = "/"
+            });
+
+            return Ok(new { Message = "Sesión cerrada correctamente" });
         }
 
         private string GenerateJwtToken(string userId, string email, string role)
         {
             var jwtSettings = _configuration.GetSection("Jwt");
-            var key = Encoding.UTF8.GetBytes(jwtSettings["Key"]);
+            var key = Encoding.UTF8.GetBytes(jwtSettings["Key"] ?? throw new InvalidOperationException("JWT Key is missing"));
 
             var claims = new[]
             {
@@ -94,11 +136,5 @@ namespace Witter.Api.Controllers
 
             return tokenHandler.WriteToken(token);
         }
-    }
-
-    public class LoginDto
-    {
-        public string Email { get; set; }
-        public string Password { get; set; }
     }
 }
