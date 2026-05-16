@@ -188,5 +188,88 @@ namespace Witter.Api.Controllers
 
             return Ok(project);
         }
+
+        // --- OBTENER POSTULACIONES DEL EGRESADO (SOLO EGRESADOS) ---
+        [HttpGet("my-applications")]
+        [Authorize(Roles = "Graduate")]
+        public async Task<IActionResult> GetMyApplications()
+        {
+            var userIdStr = User.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? User.FindFirst("id")?.Value;
+            if (!Guid.TryParse(userIdStr, out Guid graduateId)) return Unauthorized(new { Message = "Sesión inválida." });
+
+            var applications = await _context.Applications
+                .Where(a => a.GraduateId == graduateId)
+                .Join(_context.Projects, a => a.ProjectId, p => p.Id, (a, p) => new
+                {
+                    a.Id,
+                    a.ProjectId,
+                    a.AppliedAt,
+                    a.ApplicationStatus,
+                    ProjectTitle = p.Title,
+                    ProjectBudget = p.Budget,
+                    ProjectStatus = p.Status,
+                    CompanyName = _context.CompanyProfiles.FirstOrDefault(c => c.UserId == p.CompanyId).CompanyName
+                })
+                .OrderByDescending(a => a.AppliedAt)
+                .ToListAsync();
+
+            return Ok(applications);
+        }
+
+        // --- OBTENER POSTULACIONES DE UN PROYECTO (SOLO PARA LA EMPRESA) ---
+        [HttpGet("{id}/applications")]
+        [Authorize(Roles = "Company")]
+        public async Task<IActionResult> GetProjectApplications(int id)
+        {
+            var userIdStr = User.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? User.FindFirst("id")?.Value;
+            if (!Guid.TryParse(userIdStr, out Guid companyUserId)) return Unauthorized(new { Message = "Sesión inválida." });
+
+            var project = await _context.Projects.FirstOrDefaultAsync(p => p.Id == id && p.CompanyId == companyUserId);
+            if (project == null) return NotFound(new { Message = "Proyecto no encontrado o no autorizado." });
+
+            var applications = await _context.Applications
+                .Where(a => a.ProjectId == id)
+                .Join(_context.GraduateProfiles, a => a.GraduateId, gp => gp.UserId, (a, gp) => new
+                {
+                    a.Id,
+                    a.ProjectId,
+                    a.GraduateId,
+                    a.AppliedAt,
+                    a.ApplicationStatus,
+                    GraduateName = gp.FirstName + " " + gp.LastName,
+                    GraduateDegree = gp.Degree // "ProfessionalTitle" didn't exist, using Degree instead
+                })
+                .ToListAsync();
+
+            return Ok(applications);
+        }
+
+        // --- ACEPTAR O RECHAZAR POSTULACIÓN ---
+        [HttpPut("{id}/applications/{applicationId}/status")]
+        [Authorize(Roles = "Company")]
+        public async Task<IActionResult> UpdateApplicationStatus(int id, int applicationId, [FromBody] UpdateApplicationStatusDto dto)
+        {
+            var userIdStr = User.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? User.FindFirst("id")?.Value;
+            if (!Guid.TryParse(userIdStr, out Guid companyUserId)) return Unauthorized(new { Message = "Sesión inválida." });
+
+            var project = await _context.Projects.FirstOrDefaultAsync(p => p.Id == id && p.CompanyId == companyUserId);
+            if (project == null) return NotFound(new { Message = "Proyecto no encontrado o no autorizado." });
+
+            var application = await _context.Applications.FirstOrDefaultAsync(a => a.Id == applicationId && a.ProjectId == id);
+            if (application == null) return NotFound(new { Message = "Postulación no encontrada." });
+
+            if (dto.Status != "Accepted" && dto.Status != "Rejected")
+            {
+                return BadRequest(new { Message = "Estado inválido. Use 'Accepted' o 'Rejected'." });
+            }
+
+            application.ApplicationStatus = dto.Status;
+            
+            // Opcional: si se acepta una, podríamos rechazar a los demás o cambiar el estado del proyecto. Lo mantendremos simple por ahora.
+            
+            await _context.SaveChangesAsync();
+
+            return Ok(new { Message = $"Postulación {(dto.Status == "Accepted" ? "aceptada" : "rechazada")} exitosamente." });
+        }
     }
 }

@@ -11,6 +11,15 @@ interface MilestoneStep {
   status?: string; // Todavía lo podemos simular o traer de BD según tu modelo
 }
 
+interface ApplicationData {
+  id: number;
+  graduateId: string;
+  appliedAt: string;
+  applicationStatus: string;
+  graduateName: string;
+  graduateDegree?: string;
+}
+
 interface ProjectData {
   id: number;
   title: string;
@@ -29,12 +38,14 @@ export default function ProjectDetail() {
   
   // Estados para la API
   const [project, setProject] = useState<ProjectData | null>(null);
+  const [applications, setApplications] = useState<ApplicationData[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState('');
   
   // Estados para aplicar
   const [isApplying, setIsApplying] = useState(false);
   const [applyMessage, setApplyMessage] = useState('');
+  const [hasApplied, setHasApplied] = useState(false);
   
   const userRole = localStorage.getItem('role');
 
@@ -43,6 +54,21 @@ export default function ProjectDetail() {
       try {
         const response = await witterApi.get(`/projects/${id}`);
         setProject(response.data);
+
+        // Si es empresa, obtener postulaciones
+        if (localStorage.getItem('role') === 'Company') {
+          const appResponse = await witterApi.get(`/projects/${id}/applications`);
+          setApplications(appResponse.data);
+        }
+
+        // Si es egresado, verificar si ya aplicó a este proyecto particular
+        if (localStorage.getItem('role') === 'Graduate') {
+          const myAppsRes = await witterApi.get(`/projects/my-applications`);
+          const alreadyApplied = myAppsRes.data.some((app: any) => app.projectId === Number(id));
+          if (alreadyApplied) {
+            setHasApplied(true);
+          }
+        }
       } catch (err: any) {
         setError(err.response?.data?.message || 'Error al cargar el proyecto.');
       } finally {
@@ -53,13 +79,25 @@ export default function ProjectDetail() {
     if (id) fetchProjectDetails();
   }, [id]);
 
+  const handleUpdateApplication = async (applicationId: number, status: 'Accepted' | 'Rejected') => {
+    try {
+      await witterApi.put(`/projects/${id}/applications/${applicationId}/status`, { status });
+      setApplications(prev => 
+        prev.map(a => a.id === applicationId ? { ...a, applicationStatus: status } : a)
+      );
+      alert(`Postulación ${status === 'Accepted' ? 'aceptada' : 'rechazada'} exitosamente`);
+    } catch (err: any) {
+      alert(err.response?.data?.message || 'Error al actualizar la postulación.');
+    }
+  };
+
   const handleApply = async () => {
     setIsApplying(true);
     setApplyMessage('');
     try {
       const response = await witterApi.post(`/projects/${id}/apply`);
       setApplyMessage(response.data.message || 'Te has postulado con éxito.');
-      // Opcional: podrías recargar datos o bloquear el botón aquí
+      setHasApplied(true);
     } catch (err: any) {
       setApplyMessage(err.response?.data?.message || 'Hubo un error al postularte.');
     } finally {
@@ -88,7 +126,7 @@ export default function ProjectDetail() {
             </div>
             
             <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '8px' }}>
-              {userRole === 'Graduate' && (
+              {userRole === 'Graduate' && !hasApplied && (
                  <button 
                    className="btn btn-primary" 
                    onClick={handleApply} 
@@ -97,6 +135,11 @@ export default function ProjectDetail() {
                  >
                    {isApplying ? 'Enviando...' : 'Postularme a este proyecto'}
                  </button>
+              )}
+              {userRole === 'Graduate' && hasApplied && (
+                 <div style={{ padding: '10px 20px', fontSize: '14px', color: '#166534', background: '#dcfce7', borderRadius: '8px', fontWeight: 600 }}>
+                   ✓ Ya estás postulado a este proyecto
+                 </div>
               )}
               {applyMessage && <div style={{ fontSize: '13px', fontWeight: 500, color: applyMessage.includes('éxito') ? 'var(--green-600)' : 'red' }}>{applyMessage}</div>}
             </div>
@@ -154,6 +197,63 @@ export default function ProjectDetail() {
             </div>
           </div>
         </div>
+
+        {/* Sección de Postulaciones (Solo visible para la Empresa) */}
+        {userRole === 'Company' && (
+          <div className="card" style={{ marginTop: '24px' }}>
+            <div className="card-header">
+              <div>
+                <div className="card-title">Postulaciones Recibidas</div>
+                <div className="card-sub">{applications.length} egresados se han postulado</div>
+              </div>
+            </div>
+            <div style={{ marginTop: '20px' }}>
+              {applications.length === 0 ? (
+                <p style={{ color: 'var(--gray-500)', fontSize: '14px' }}>Aún no hay postulaciones para este proyecto.</p>
+              ) : (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                  {applications.map(app => (
+                    <div key={app.id} style={{ padding: '16px', border: '1px solid var(--gray-200)', borderRadius: '8px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '16px' }}>
+                      <div>
+                        <div style={{ fontWeight: 600, fontSize: '16px', color: 'var(--blue-950)' }}>{app.graduateName}</div>
+                        <div style={{ fontSize: '14px', color: 'var(--gray-500)', marginTop: '4px' }}>
+                          {app.graduateDegree || 'Egresado'} · Postulado el {new Date(app.appliedAt).toLocaleDateString()}
+                        </div>
+                        <div style={{ marginTop: '8px' }}>
+                          <span className="badge" style={{ 
+                            background: app.applicationStatus === 'Accepted' ? '#dcfce7' : app.applicationStatus === 'Rejected' ? '#fee2e2' : 'var(--gray-100)',
+                            color: app.applicationStatus === 'Accepted' ? '#166534' : app.applicationStatus === 'Rejected' ? '#991b1b' : 'var(--gray-600)'
+                          }}>
+                            {app.applicationStatus === 'Pending' ? 'Pendiente' : app.applicationStatus === 'Accepted' ? 'Aceptada' : 'Rechazada'}
+                          </span>
+                        </div>
+                      </div>
+                      
+                      {app.applicationStatus === 'Pending' && (
+                        <div style={{ display: 'flex', gap: '8px' }}>
+                          <button 
+                            className="btn" 
+                            style={{ background: '#16a34a', color: 'white', border: 'none', padding: '8px 16px', fontSize: '13px' }}
+                            onClick={() => handleUpdateApplication(app.id, 'Accepted')}
+                          >
+                            Aceptar
+                          </button>
+                          <button 
+                            className="btn" 
+                            style={{ background: '#dc2626', color: 'white', border: 'none', padding: '8px 16px', fontSize: '13px' }}
+                            onClick={() => handleUpdateApplication(app.id, 'Rejected')}
+                          >
+                            Rechazar
+                          </button>
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+        )}
       </div>
     </>
   );

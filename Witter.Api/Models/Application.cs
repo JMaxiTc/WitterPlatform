@@ -10,6 +10,6 @@ namespace Witter.Api.Models
         public int ProjectId { get; set; }
         public Guid GraduateId { get; set; }
         public DateTime AppliedAt { get; set; } = DateTime.UtcNow;
-        public string ApplicationStatus { get; set; } = "Pending";
+        public string? ApplicationStatus { get; set; } = "Pending";
     }
 }

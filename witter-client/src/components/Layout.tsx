@@ -48,13 +48,16 @@ export default function Layout({ children, role, userName, onLogout }: LayoutPro
           {/* ENLACES PARA EMPRESA */}
           {role === 'Company' && (
             <>
-              <Link to="/company/dashboard" className="nav-item">
+              <Link to="/company/dashboard" className={`nav-item ${location.pathname.includes('/company/dashboard') ? 'active' : ''}`}>
                 <span className="nav-icon">▦</span><span>Dashboard</span>
               </Link>
-              <Link to="/company/projects/new" className="nav-item">
+              <Link to="/company/projects" className={`nav-item ${location.pathname === '/company/projects' ? 'active' : ''}`}>
+                <span className="nav-icon">◈</span><span>Mis Proyectos</span>
+              </Link>
+              <Link to="/company/projects/new" className={`nav-item ${location.pathname.includes('/company/projects/new') ? 'active' : ''}`}>
                 <span className="nav-icon">＋</span><span>Nuevo Proyecto</span>
               </Link>
-              <Link to="/company/profile" className="nav-item">
+              <Link to="/company/profile" className={`nav-item ${location.pathname.includes('/company/profile') ? 'active' : ''}`}>
                 <span className="nav-icon">◑</span><span>Perfil / KYC</span>
               </Link>
             </>
@@ -63,10 +66,10 @@ export default function Layout({ children, role, userName, onLogout }: LayoutPro
           {/* ENLACES PARA EGRESADO */}
           {role === 'Graduate' && (
             <>
-              <Link to="/graduate/dashboard" className="nav-item">
+              <Link to="/graduate/dashboard" className={`nav-item ${location.pathname.includes('/graduate/dashboard') ? 'active' : ''}`}>
                 <span className="nav-icon">▦</span><span>Dashboard</span>
               </Link>
-              <Link to="/graduate/projects" className="nav-item">
+              <Link to="/graduate/projects" className={`nav-item ${location.pathname === '/graduate/projects' ? 'active' : ''}`}>
                 <span className="nav-icon">◈</span><span>Mis Proyectos</span>
               </Link>
               <Link to="/graduate/explore" className={`nav-item ${location.pathname.includes('/graduate/explore') ? 'active' : ''}`}>

@@ -3615,23 +3615,23 @@
     ]
   },
   "packageFolders": {
-    "C:\\Users\\chtprro\\.nuget\\packages\\": {},
+    "C:\\Users\\LuisM\\.nuget\\packages\\": {},
     "C:\\Program Files (x86)\\Microsoft Visual Studio\\Shared\\NuGetPackages": {}
   },
   "project": {
     "version": "1.0.0",
     "restore": {
-      "projectUniqueName": "C:\\Users\\chtprro\\Documents\\8vo Semestre\\WITTER\\WitterPlatform\\Witter.Api\\Witter.Api.csproj",
+      "projectUniqueName": "C:\\Users\\LuisM\\Music\\WitterPlatform\\Witter.Api\\Witter.Api.csproj",
       "projectName": "Witter.Api",
-      "projectPath": "C:\\Users\\chtprro\\Documents\\8vo Semestre\\WITTER\\WitterPlatform\\Witter.Api\\Witter.Api.csproj",
-      "packagesPath": "C:\\Users\\chtprro\\.nuget\\packages\\",
-      "outputPath": "C:\\Users\\chtprro\\Documents\\8vo Semestre\\WITTER\\WitterPlatform\\Witter.Api\\obj\\",
+      "projectPath": "C:\\Users\\LuisM\\Music\\WitterPlatform\\Witter.Api\\Witter.Api.csproj",
+      "packagesPath": "C:\\Users\\LuisM\\.nuget\\packages\\",
+      "outputPath": "C:\\Users\\LuisM\\Music\\WitterPlatform\\Witter.Api\\obj\\",
       "projectStyle": "PackageReference",
       "fallbackFolders": [
         "C:\\Program Files (x86)\\Microsoft Visual Studio\\Shared\\NuGetPackages"
       ],
       "configFilePaths": [
-        "C:\\Users\\chtprro\\AppData\\Roaming\\NuGet\\NuGet.Config",
+        "C:\\Users\\LuisM\\AppData\\Roaming\\NuGet\\NuGet.Config",
         "C:\\Program Files (x86)\\NuGet\\Config\\Microsoft.VisualStudio.FallbackLocation.config",
         "C:\\Program Files (x86)\\NuGet\\Config\\Microsoft.VisualStudio.Offline.config"
       ],
@@ -3711,7 +3711,7 @@
             "privateAssets": "all"
           }
         },
-        "runtimeIdentifierGraphPath": "C:\\Program Files\\dotnet\\sdk\\10.0.203/PortableRuntimeIdentifierGraph.json",
+        "runtimeIdentifierGraphPath": "C:\\Program Files\\dotnet\\sdk\\10.0.204/PortableRuntimeIdentifierGraph.json",
         "packagesToPrune": {
           "Microsoft.AspNetCore": "(,10.0.32767]",
           "Microsoft.AspNetCore.Antiforgery": "(,10.0.32767]",

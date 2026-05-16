@@ -24,7 +24,12 @@ export default function Login({ setAuth, setRole, setName }: LoginProps) {
       // Usamos witterApi en lugar de fetch
       const response = await witterApi.post('/auth/login', { email, password });
       
-      const { role } = response.data; // Axios ya parsea el JSON
+      const { role, token } = response.data; // Axios ya parsea el JSON
+
+      // Guardamos el token para poder enviarlo en cada petición
+      if (token) {
+        localStorage.setItem('token', token);
+      }
 
       localStorage.setItem('role', response.data.role);
       localStorage.setItem('fullName', response.data.fullName);

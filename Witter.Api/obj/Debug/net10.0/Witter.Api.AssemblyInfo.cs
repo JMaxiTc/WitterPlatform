@@ -13,7 +13,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyCompanyAttribute("Witter.Api")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Debug")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+51b053643b3476c999d80204ab14a1c1e82fbfe3")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+6f84fd3b8551975950a118a4367cd567690396be")]
 [assembly: System.Reflection.AssemblyProductAttribute("Witter.Api")]
 [assembly: System.Reflection.AssemblyTitleAttribute("Witter.Api")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]

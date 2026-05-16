@@ -13,6 +13,11 @@ const witterApi = axios.create({
 // Antes de que cualquier petición salga hacia el backend, esta función se ejecuta
 witterApi.interceptors.request.use(
     (config) => {
+        // Obtenemos el token del localStorage
+        const token = localStorage.getItem('token');
+        if (token) {
+            config.headers.Authorization = `Bearer ${token}`;
+        }
         return config;
     },
     (error) => {
@@ -31,6 +36,7 @@ witterApi.interceptors.response.use(
         if (error.response && error.response.status === 401) {
             console.warn('Token expirado o sesión inválida. Cerrando sesión...');
             // Borramos rastros locales
+            localStorage.removeItem('token');
             localStorage.removeItem('role');
             localStorage.removeItem('userName');
             localStorage.removeItem('fullName');

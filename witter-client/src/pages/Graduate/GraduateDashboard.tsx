@@ -24,9 +24,16 @@ interface Credential {
   badgeColor: string;
 }
 
+interface PaymentRecord {
+  id: number;
+  amount: number;
+  title: string;
+}
+
 export default function GraduateDashboard() {
-  const [stats, setStats] = useState({ activeProjects: 2, totalEarnings: 54000, credentialsCount: 3 });
+  const [stats, setStats] = useState({ activeProjects: 0, totalEarnings: 0, credentialsCount: 0 });
   const [assignedProjects, setAssignedProjects] = useState<AssignedProject[]>([]);
+  const [paymentHistory, setPaymentHistory] = useState<PaymentRecord[]>([]);
   const [credentials, setCredentials] = useState<Credential[]>([]);
   
   // NUEVO: Estado para la información real del usuario
@@ -56,24 +63,22 @@ export default function GraduateDashboard() {
       }
     };
 
+    const fetchDashboardData = async () => {
+      try {
+        const response = await witterApi.get('/dashboard/graduate');
+        const data = response.data;
+        
+        setStats(data.stats);
+        setAssignedProjects(data.assignedProjects);
+        setPaymentHistory(data.paymentHistory || []);
+        setCredentials(data.credentials || []);
+      } catch (error) {
+        console.error("Error fetching graduate dashboard data:", error);
+      }
+    };
+
     fetchUserData();
-
-    // 2. Datos simulados de los proyectos y credenciales (Fase 4 de nuestra hoja de ruta)
-    setAssignedProjects([
-      { id: 1, projectName: 'Sistema CRM Integrado', companyName: 'TechCorp', currentMilestone: 'Sprint 2 — API REST', amount: 18000, status: 'En revisión' },
-      { id: 2, projectName: 'App Logística Mobile', companyName: 'TechCorp', currentMilestone: 'Diseño UX Mobile', amount: 14000, status: 'En Escrow' }
-    ]);
-
-    // ... (Mantén tu arreglo setCredentials igualito como lo tenías) ...
-    setCredentials([
-      { 
-        id: '1', issuer: 'Tecnológico de Colima', title: 'Ingeniería Informática', 
-        recipient: 'Ana Torres Ramírez', date: 'Dic 2025', hash: 'vc:witter:0x4a7f…b3c1',
-        gradient: 'linear-gradient(140deg, var(--blue-950) 0%, var(--blue-800) 100%)',
-        sealColor: 'var(--blue-300)', badgeColor: 'var(--green-400)'
-      },
-      // ... (demás credenciales)
-    ]);
+    fetchDashboardData();
   }, []);
 
   if (isLoading) {
@@ -102,13 +107,13 @@ export default function GraduateDashboard() {
             <div className="stat-icon stat-icon-blue">◈</div>
             <div className="stat-label">Proyectos Activos</div>
             <div className="stat-value">{stats.activeProjects}</div>
-            <div className="stat-change">1 con hito pendiente</div>
+            <div className="stat-change">En curso</div>
           </div>
           <div className="stat-card">
             <div className="stat-icon stat-icon-green">$</div>
             <div className="stat-label">Ingresos Acumulados</div>
             <div className="stat-value">${stats.totalEarnings.toLocaleString('es-MX')}</div>
-            <div className="stat-change">↑ $18,000 este mes</div>
+            <div className="stat-change">Saldo procesado</div>
           </div>
           <div className="stat-card">
             <div className="stat-icon" style={{ background: 'var(--violet-100)', color: 'var(--violet-700)' }}>⬡</div>
@@ -127,40 +132,53 @@ export default function GraduateDashboard() {
             </div>
           </div>
           <div style={{ overflowX: 'auto' }}>
-            <table>
-              <thead>
-                <tr>
-                  <th>Proyecto</th>
-                  <th>Empresa</th>
-                  <th>Hito actual</th>
-                  <th>Monto hito</th>
-                  <th>Estado pago</th>
-                  <th>Acciones</th>
-                </tr>
-              </thead>
-              <tbody>
-                {assignedProjects.map(project => (
-                  <tr key={project.id}>
-                    <td className="td-bold">{project.projectName}</td>
-                    <td>{project.companyName}</td>
-                    <td>{project.currentMilestone}</td>
-                    <td><span className="code">${project.amount.toLocaleString('es-MX')} MXN</span></td>
-                    <td>
-                      <span className={`badge ${project.status === 'En revisión' ? 'badge-pendiente' : 'badge-escrow'}`}>
-                        {project.status}
-                      </span>
-                    </td>
-                    <td><button className="btn btn-ghost btn-sm">Ver detalle</button></td>
+            {assignedProjects.length === 0 ? (
+              <div className="empty-state" style={{ padding: '20px' }}>
+                <div className="empty-text">Aún no tienes proyectos asignados.</div>
+              </div>
+            ) : (
+              <table>
+                <thead>
+                  <tr>
+                    <th>Proyecto</th>
+                    <th>Empresa</th>
+                    <th>Hito actual</th>
+                    <th>Monto hito</th>
+                    <th>Estado pago</th>
+                    <th>Acciones</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
+                </thead>
+                <tbody>
+                  {assignedProjects.map(project => (
+                    <tr key={project.id}>
+                      <td className="td-bold">{project.projectName}</td>
+                      <td>{project.companyName}</td>
+                      <td>{project.currentMilestone}</td>
+                      <td><span className="code">${project.amount.toLocaleString('es-MX')} MXN</span></td>
+                      <td>
+                        <span className={`badge ${project.status === 'En revisión' ? 'badge-pendiente' : 'badge-escrow'}`}>
+                          {project.status}
+                        </span>
+                      </td>
+                      <td><button className="btn btn-ghost btn-sm">Ver detalle</button></td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            )}
           </div>
           <div className="divider"></div>
           <div style={{ fontSize: '12px', color: 'var(--gray-400)' }}>
             Historial de pagos:
-            <span className="badge badge-liberado" style={{ margin: '0 4px' }}>$18,000 liberado el 15/05</span>
-            <span className="badge badge-liberado" style={{ margin: '0 4px' }}>$18,000 liberado el 01/06</span>
+            {paymentHistory.length === 0 ? (
+              <span style={{ marginLeft: '8px', fontStyle: 'italic' }}>Sin pagos registrados</span>
+            ) : (
+              paymentHistory.map(payment => (
+                <span key={payment.id} className="badge badge-liberado" style={{ margin: '0 4px' }}>
+                  ${payment.amount.toLocaleString('es-MX')} liberado por: {payment.title}
+                </span>
+              ))
+            )}
           </div>
         </div>
 
@@ -173,21 +191,28 @@ export default function GraduateDashboard() {
             </div>
             <span className="badge badge-verificado">{stats.credentialsCount} activas</span>
           </div>
-          <div className="credential-grid">
-            {credentials.map(cred => (
-              <div className="credential-card" key={cred.id} style={{ background: cred.gradient }}>
-                <div className="cred-issuer">{cred.issuer}</div>
-                <div className="cred-title">{cred.title}</div>
-                <div className="cred-name">{cred.recipient}</div>
-                <div className="cred-date">{cred.date}</div>
-                <div className="cred-footer">
-                  <div className="cred-badge" style={{ color: cred.badgeColor }}>✓ {cred.id === '2' ? 'Hito Liberado' : 'Verificado W3C'}</div>
-                  <div className="cred-seal" style={{ borderColor: cred.sealColor, color: cred.sealColor }}>⬡</div>
+          
+          {credentials.length === 0 ? (
+            <div className="empty-state" style={{ padding: '20px' }}>
+              <div className="empty-text">Aún no cuentas con credenciales verificadas.</div>
+            </div>
+          ) : (
+            <div className="credential-grid">
+              {credentials.map(cred => (
+                <div className="credential-card" key={cred.id} style={{ background: cred.gradient }}>
+                  <div className="cred-issuer">{cred.issuer}</div>
+                  <div className="cred-title">{cred.title}</div>
+                  <div className="cred-name">{cred.recipient}</div>
+                  <div className="cred-date">{cred.date}</div>
+                  <div className="cred-footer">
+                    <div className="cred-badge" style={{ color: cred.badgeColor }}>✓ {cred.id === '2' ? 'Hito Liberado' : 'Verificado W3C'}</div>
+                    <div className="cred-seal" style={{ borderColor: cred.sealColor, color: cred.sealColor }}>⬡</div>
+                  </div>
+                  <div className="cred-hash">{cred.hash}</div>
                 </div>
-                <div className="cred-hash">{cred.hash}</div>
-              </div>
-            ))}
-          </div>
+              ))}
+            </div>
+          )}
         </div>
       </div>
     </>

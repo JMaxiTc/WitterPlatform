@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
+import witterApi from '../../api/witterApi';
 
 // Interfaces basadas en los modelos de tu base de datos
 interface MilestonePending {
@@ -24,26 +25,32 @@ interface ProjectActive {
 }
 
 export default function CompanyDashboard() {
-  // Estados para almacenar la información (Simulando la carga desde la API)
-  const [escrowTotal, setEscrowTotal] = useState(248500);
-  const [stats, setStats] = useState({ activeProjects: 4, paymentsReleased: 84200, pendingMilestones: 3 });
+  const [escrowTotal, setEscrowTotal] = useState(0);
+  const [stats, setStats] = useState({ activeProjects: 0, paymentsReleased: 0, pendingMilestones: 0 });
   const [pendingMilestones, setPendingMilestones] = useState<MilestonePending[]>([]);
   const [activeProjects, setActiveProjects] = useState<ProjectActive[]>([]);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // Aquí en el futuro harás el fetch a tu API: fetch('https://localhost:7112/api/dashboard/company')
-    // Por ahora, cargamos los datos de prueba basados en tu maqueta
-    setPendingMilestones([
-      { id: 1, title: 'Sprint 2 — API REST', projectName: 'Sistema CRM', graduateName: 'Ana Torres', amount: 18000, repoUrl: 'github.com/.../pr/42' },
-      { id: 2, title: 'Módulo de Reportes', projectName: 'BI Dashboard', graduateName: 'Carlos Ruiz', amount: 22500, repoUrl: 'github.com/.../pr/17' },
-      { id: 3, title: 'Diseño UX Mobile', projectName: 'App Logística', graduateName: 'Sofía Méndez', amount: 14000, repoUrl: 'figma.com/...' }
-    ]);
+    const fetchDashboardData = async () => {
+      try {
+        const res = await witterApi.get('/dashboard/company');
+        
+        if (res.status === 200) {
+          const data = res.data;
+          setEscrowTotal(data.escrowTotal);
+          setStats(data.stats);
+          setPendingMilestones(data.pendingMilestones);
+          setActiveProjects(data.activeProjects);
+        }
+      } catch (error) {
+        console.error('Error fetching dashboard data:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
 
-    setActiveProjects([
-      { id: 1, name: 'Sistema CRM Integrado', graduateName: 'Ana Torres', startDate: '01/05/2026', currentMilestone: 2, totalMilestones: 4, progressPct: 50, budget: 72000, colorClass: 'var(--blue-500)' },
-      { id: 2, name: 'BI Dashboard Financiero', graduateName: 'Carlos Ruiz', startDate: '15/04/2026', currentMilestone: 3, totalMilestones: 5, progressPct: 60, budget: 95000, colorClass: 'var(--violet-500)' },
-      { id: 3, name: 'App Logística Mobile', graduateName: 'Sofía Méndez', startDate: '20/05/2026', currentMilestone: 1, totalMilestones: 3, progressPct: 33, budget: 48000, colorClass: 'var(--green-500)' }
-    ]);
+    fetchDashboardData();
   }, []);
 
   const handleApproveMilestone = (id: number) => {
@@ -178,9 +185,10 @@ export default function CompanyDashboard() {
                     </div>
                   </div>
                 </div>
-                <div className="project-actions">
+                <div className="project-actions" style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
                   <span className="badge badge-activo">Activo</span>
                   <span className="code">${project.budget.toLocaleString('es-MX')} MXN</span>
+                  <Link to={`/company/projects/${project.id}`} className="btn btn-ghost btn-sm" style={{ border: '1px solid var(--gray-300)' }}>Gestionar</Link>
                 </div>
               </div>
             ))}

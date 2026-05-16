@@ -13,10 +13,12 @@ import RegisterCompany from './pages/Public/RegisterCompany';
 import CompanyDashboard from './pages/Company/CompanyDashboard';
 import CompanyProfile from './pages/Company/CompanyProfile';
 import NewProject from './pages/Company/NewProject';
+import CompanyProjects from './pages/Company/CompanyProjects';
 // RUTAS EGRESADO
 import GraduateDashboard from './pages/Graduate/GraduateDashboard';
 import GraduateProfile from './pages/Graduate/GraduateProfile';
 import ExploreProjects from './pages/Graduate/ExploreProjects';
+import GraduateProjects from './pages/Graduate/GraduateProjects';
 
 // RUTAS COMPARTIDAS
 import ProjectDetail from './pages/Shared/ProjectDetail';
@@ -104,6 +106,8 @@ export default function App() {
             <Layout role="Company" userName={userName} onLogout={handleLogout}>
               <Routes>
                 <Route path="dashboard" element={<CompanyDashboard />} />
+                <Route path="projects" element={<CompanyProjects />} />
+                <Route path="projects/:id" element={<ProjectDetail />} />
                 <Route path="profile" element={<CompanyProfile />} />
                 <Route path="projects/new" element={<NewProject />} />
               </Routes>
@@ -117,6 +121,7 @@ export default function App() {
             <Layout role="Graduate" userName={userName} onLogout={handleLogout}>
               <Routes>
                 <Route path="dashboard" element={<GraduateDashboard />} />
+                <Route path="projects" element={<GraduateProjects />} />
                 <Route path="projects/:id" element={<ProjectDetail />} />
                 <Route path="profile" element={<GraduateProfile />} />
                 <Route path="explore" element={<ExploreProjects />} />
