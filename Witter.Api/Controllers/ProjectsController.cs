@@ -21,17 +21,17 @@ namespace Witter.Api.Controllers
         }
 
         [HttpPost]
-        [Authorize(Roles = "Company")] // Este método SÍ es exclusivo para Empresas
+        [ValidateAntiForgeryToken]
+        [Authorize(Roles = "Company")] // Método solo para empresa
         public async Task<IActionResult> CreateProject([FromBody] ProjectCreateDto dto)
         {
-            // ... (Conserva todo el código que ya tenías adentro de este método, no cambia nada)
             var userIdStr = User.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? User.FindFirst("id")?.Value;
             if (!Guid.TryParse(userIdStr, out Guid companyUserId)) return Unauthorized(new { Message = "Sesión inválida." });
 
             var totalMilestones = dto.Milestones?.Sum(m => m.Amount) ?? 0;
             if (totalMilestones != dto.Budget) return BadRequest(new { Message = "El presupuesto de los hitos no coincide." });
 
-            // 2. Crear el Proyecto Principal
+            // Crear el Proyecto Principal
             var project = new Project
             {
                 CompanyId = companyUserId,
@@ -68,9 +68,9 @@ namespace Witter.Api.Controllers
             return Ok(new { Message = "Proyecto publicado exitosamente.", ProjectId = project.Id });
         }
 
-        // --- NUEVO ENDPOINT PARA EL MARKETPLACE ---
+        // Método para ver los proyectos abiertos
         [HttpGet("open")]
-        [Authorize(Roles = "Graduate")] // Exclusivo para que los Egresados exploren
+        [Authorize(Roles = "Graduate")] // Vista solo para egresados
         public async Task<IActionResult> GetOpenProjects()
         {
             // Buscamos proyectos abiertos y cruzamos datos con la tabla de empresas y habilidades
@@ -99,17 +99,18 @@ namespace Witter.Api.Controllers
 
             return Ok(projects);
         }
-        // --- ENDPOINT PARA POSTULARSE A UN PROYECTO ---
+        // Método para postularse a un proyecto (egresado)
         [HttpPost("{id}/apply")]
-        [Authorize(Roles = "Graduate")]
+        [ValidateAntiForgeryToken]
+        [Authorize(Roles = "Graduate")] // Metodo para egresado
         public async Task<IActionResult> ApplyToProject(int id)
         {
-            // 1. Obtener el UserId del token JWT
+            // Obtener el UserId del token JWT
             var userIdStr = User.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? User.FindFirst("id")?.Value;
             if (!Guid.TryParse(userIdStr, out Guid userId)) 
                 return Unauthorized(new { Message = "Sesión inválida." });
 
-            // 2. Verificar que el proyecto exista y esté abierto
+            // Verificar que el proyecto exista y esté abierto
             var project = await _context.Projects.FirstOrDefaultAsync(p => p.Id == id);
             if (project == null) 
                 return NotFound(new { Message = "Proyecto no encontrado." });
@@ -117,25 +118,25 @@ namespace Witter.Api.Controllers
             if (project.Status != "Open") 
                 return BadRequest(new { Message = "El proyecto ya no acepta postulaciones." });
 
-            // 3. Buscar el Perfil del Egresado (GraduateProfile)
+            // Buscar el Perfil del Egresado (GraduateProfile)
             var graduateProfile = await _context.GraduateProfiles.FirstOrDefaultAsync(gp => gp.UserId == userId);
             if (graduateProfile == null)
                 return NotFound(new { Message = "Perfil de egresado no encontrado." });
 
-            // 4. Evitar postulaciones duplicadas
+            // Evitar postulaciones duplicadas
             bool alreadyApplied = await _context.Applications
                 .AnyAsync(a => a.ProjectId == id && a.GraduateId == graduateProfile.UserId);
 
             if (alreadyApplied)
                 return BadRequest(new { Message = "Ya estás postulado a este proyecto." });
 
-            // 5. Crear la Postulación (Application)
+            // Crear la Postulación (Application)
             var application = new Application
             {
                 ProjectId = id,
                 GraduateId = graduateProfile.UserId,
                 AppliedAt = DateTime.UtcNow,
-                ApplicationStatus = "Pending" // El Default de tu modelo
+                ApplicationStatus = "Pending" // Default al postularse
             };
 
             _context.Applications.Add(application);
@@ -143,7 +144,7 @@ namespace Witter.Api.Controllers
 
             return Ok(new { Message = "Postulación enviada correctamente." });
         }
-        // --- OBTENER DETALLES DE UN PROYECTO ---
+        // Método para obtener detalle de un proyecto
         [HttpGet("{id}")]
         [Authorize] // Egresados y Empresas pueden verlo
         public async Task<IActionResult> GetProjectDetails(int id)
@@ -189,7 +190,7 @@ namespace Witter.Api.Controllers
             return Ok(project);
         }
 
-        // --- OBTENER POSTULACIONES DEL EGRESADO (SOLO EGRESADOS) ---
+        // Método para obtener las postulaciones de un egresado
         [HttpGet("my-applications")]
         [Authorize(Roles = "Graduate")]
         public async Task<IActionResult> GetMyApplications()
@@ -216,9 +217,9 @@ namespace Witter.Api.Controllers
             return Ok(applications);
         }
 
-        // --- OBTENER POSTULACIONES DE UN PROYECTO (SOLO PARA LA EMPRESA) ---
+        // Método para obtener las postulaciones a un proyecto (empresa)
         [HttpGet("{id}/applications")]
-        [Authorize(Roles = "Company")]
+        [Authorize(Roles = "Company")] // Empresa ve quién se postuló a su proyecto
         public async Task<IActionResult> GetProjectApplications(int id)
         {
             var userIdStr = User.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? User.FindFirst("id")?.Value;
@@ -244,8 +245,9 @@ namespace Witter.Api.Controllers
             return Ok(applications);
         }
 
-        // --- ACEPTAR O RECHAZAR POSTULACIÓN ---
+        // // Método para aceptar o rechazar una postulación (empresa)
         [HttpPut("{id}/applications/{applicationId}/status")]
+        [ValidateAntiForgeryToken]
         [Authorize(Roles = "Company")]
         public async Task<IActionResult> UpdateApplicationStatus(int id, int applicationId, [FromBody] UpdateApplicationStatusDto dto)
         {

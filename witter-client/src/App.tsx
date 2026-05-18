@@ -2,6 +2,8 @@ import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-d
 import { useState, useEffect } from 'react';
 import Layout from './components/Layout';
 import witterApi from './api/witterApi';
+import { fetchCsrfToken } from './api/witterApi';
+
 
 // RUTAS PUBLICAS
 import Login from './pages/Public/Login';
@@ -34,6 +36,7 @@ export default function App() {
 
   // Al cargar la app, verificamos si hay un token guardado
   useEffect(() => {
+    fetchCsrfToken();
     // Ya no dependemos del token en localStorage, solo del rol que guardamos en el login
     const role = localStorage.getItem('role') as 'Company' | 'Graduate' | 'Admin' | null;
     // Recuperamos el nombre del usuario para mostrarlo
@@ -62,10 +65,9 @@ export default function App() {
       localStorage.removeItem('userId');
       setIsAuthenticated(false);
       setUserRole(null);
-      // Redirección manejada por componentes 
+      setUserName('');
+      window.location.href = '/login';
     }
-    setUserRole(null);
-    setUserName('');
   };
 
   return (

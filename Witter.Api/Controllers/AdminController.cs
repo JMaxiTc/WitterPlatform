@@ -7,7 +7,7 @@ namespace Witter.Api.Controllers
 {
     [ApiController]
     [Route("api/[controller]")]
-    [Authorize(Roles = "Admin")] // SOLO EL SUPERUSUARIO ENTRA AQUÍ
+    [Authorize(Roles = "Admin")] // SOLO EL SUPERUSUARIO PUEDE ACCEDER
     public class AdminController : ControllerBase
     {
         private readonly WitterDbContext _context;
@@ -40,6 +40,7 @@ namespace Witter.Api.Controllers
 
         // Aprobar una empresa
         [HttpPut("approve-company/{userId}")]
+        [ValidateAntiForgeryToken]
         public async Task<IActionResult> ApproveCompany(Guid userId)
         {
             var user = await _context.Users.FindAsync(userId);

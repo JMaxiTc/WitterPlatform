@@ -1,22 +1,31 @@
 import axios from 'axios';
 
-// 1. Configuramos la URL base de tu backend en ASP.NET Core
+// Configuramos la URL base de tu backend en ASP.NET Core
 const witterApi = axios.create({
-    baseURL: '/api', // URL con puerto de la API
+    baseURL: '/api',
     withCredentials: true, // Permitir el envío de cookies para autenticacion
     headers: {
         'Content-Type': 'application/json'
     }
 });
 
-// 2. INTERCEPTOR DE PETICIÓN (Request)
+// Funcion para solicitar el Token CSRF
+let csrfToken: string | null = null;
+export const fetchCsrfToken = async () => {
+    try{
+        const response = await witterApi.get('/auth/csrf-token');
+        csrfToken = response.data.csrfToken;
+    } catch (error){
+        console.error('Error al obtener el CSRF token: ', error)
+    }
+};
+
+// INTERCEPTOR DE PETICIÓN (Request)
 // Antes de que cualquier petición salga hacia el backend, esta función se ejecuta
 witterApi.interceptors.request.use(
     (config) => {
-        // Obtenemos el token del localStorage
-        const token = localStorage.getItem('token');
-        if (token) {
-            config.headers.Authorization = `Bearer ${token}`;
+        if (csrfToken && config.method !== 'get') {
+            config.headers['X-CSRF-TOKEN'] = csrfToken;
         }
         return config;
     },
@@ -25,24 +34,21 @@ witterApi.interceptors.request.use(
     }
 );
 
-// 3. INTERCEPTOR DE RESPUESTA (Response)
-// Evalúa la respuesta del servidor antes de entregarla a tus componentes
+// INTERCEPTOR DE RESPUESTA (Response)
 witterApi.interceptors.response.use(
     (response) => {
         return response;
     },
     (error) => {
-        // Si el backend responde con un 401 (Token expirado, inválido o ausente)
+        // Si el back responde con un 401 (Token expirado, inválido o ausente)
         if (error.response && error.response.status === 401) {
             console.warn('Token expirado o sesión inválida. Cerrando sesión...');
             // Borramos rastros locales
-            localStorage.removeItem('token');
             localStorage.removeItem('role');
             localStorage.removeItem('userName');
             localStorage.removeItem('fullName');
             localStorage.removeItem('userId');
-            // Forzamos la recarga para que App.tsx detecte que ya no hay sesión
-            // y el enrutador expulse al usuario a /login
+            // expulsamos al usuario a /login
             window.location.href = '/login'; 
         }
         return Promise.reject(error);

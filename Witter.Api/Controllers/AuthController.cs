@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using System.IdentityModel.Tokens.Jwt;
+using Microsoft.AspNetCore.Antiforgery;
 using System.Security.Claims;
 using System.Text;
 using Witter.Api.Data;
@@ -22,7 +23,18 @@ namespace Witter.Api.Controllers
             _context = context;
         }
 
+        [HttpGet("csrf-token")]
+        public IActionResult GetCsrfToken([FromServices] IAntiforgery antiforgery)
+        {
+            // Genera y almacena el token CSRF en cookie 
+            var tokens = antiforgery.GetAndStoreTokens(HttpContext);
+            
+            // Retornamos el RequestToken al cliente
+            return Ok(new { csrfToken = tokens.RequestToken });
+        }
+
         [HttpPost("login")]
+        [IgnoreAntiforgeryToken]
         public async Task<IActionResult> Login([FromBody] LoginDto loginData)
         {
             // Buscar al usuario por correo
@@ -86,7 +98,6 @@ namespace Witter.Api.Controllers
 
             return Ok(new {
                 Message = "Login exitoso",
-                Token = token,
                 Role = user.UserRole,
                 UserId = user.Id,
                 FullName = fullName
@@ -94,6 +105,7 @@ namespace Witter.Api.Controllers
         }
 
         [HttpPost("logout")]
+        [ValidateAntiForgeryToken]
         public IActionResult Logout()
         {
             // Esto le indica al navegador que la cookie "WitterAuthToken"

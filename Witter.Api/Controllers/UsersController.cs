@@ -24,15 +24,16 @@ namespace Witter.Api.Controllers
         }
 
         [HttpPost("register/graduate")]
+        [IgnoreAntiforgeryToken]
         public async Task<IActionResult> RegisterGraduate([FromBody] GraduateRegisterDto dto)
         {
-            // 1. Validar si el correo ya existe
+            // Validar si el correo ya existe
             if (await _context.Users.AnyAsync(u => u.Email == dto.Email))
             {
                 return BadRequest(new { Message = "El correo ya está registrado." });
             }
 
-            // 2. Crear el Usuario Base (Seguridad e Identidad)
+            // Crear el Usuario
             var user = new User
             {
                 Id = Guid.NewGuid(),
@@ -44,7 +45,7 @@ namespace Witter.Api.Controllers
                 CreatedAt = DateTime.UtcNow
             };
 
-            // 3. Crear el Perfil del Egresado
+            // Crear el Perfil del Egresado
             var graduateProfile = new GraduateProfile
             {
                 UserId = user.Id,
@@ -56,29 +57,29 @@ namespace Witter.Api.Controllers
                 GithubUrl = dto.GithubUrl
             };
 
-            // 4. Mapear las habilidades de forma segura a prueba de nulos
+            // Mapear las habilidades de forma segura a prueba de nulos
             var graduateSkills = (dto.SkillIds ?? new List<int>()).Select(skillId => new GraduateSkill
             {
                 GraduateId = user.Id,
                 SkillId = skillId
             }).ToList();
 
-            // 5. Guardar primero el Usuario y el Perfil
+            // Guardar primero el Usuario y el Perfil
             _context.Users.Add(user);
             _context.GraduateProfiles.Add(graduateProfile);
             
             // Forzamos a que SQL Server escriba estos datos AHORA MISMO
             await _context.SaveChangesAsync(); 
 
-            // 6. Ahora que el Perfil ya existe físicamente en SQL Server, 
-            // podemos enlazarle las habilidades de forma segura
+            // Ahora que el Perfil ya existe físicamente en SQL Server, 
+            // podemos enlazarle las habilidades
             if (graduateSkills.Any())
             {
                 _context.GraduateSkills.AddRange(graduateSkills);
                 await _context.SaveChangesAsync();
             }
 
-            // Nota: Aquí validamos la edad calculada sin guardarla en BD
+            // Validamos la edad calculada sin guardarla en BD
             return Ok(new { 
                 Message = "Egresado registrado con éxito.", 
                 UserId = user.Id,
@@ -87,15 +88,16 @@ namespace Witter.Api.Controllers
         }
 
         [HttpPost("register/company")]
+        [IgnoreAntiforgeryToken]
         public async Task<IActionResult> RegisterCompany([FromBody] CompanyRegisterDto dto)
         {
-            // 1. Validar si el correo ya existe
+            // Validar si el correo ya existe
             if (await _context.Users.AnyAsync(u => u.Email == dto.Email))
             {
                 return BadRequest(new { Message = "El correo ya está registrado." });
             }
 
-            // 2. Crear el Usuario Base
+            // Crear el Usuario Base
             var user = new User
             {
                 Id = Guid.NewGuid(),
@@ -103,11 +105,11 @@ namespace Witter.Api.Controllers
                 PasswordHash = BCrypt.Net.BCrypt.HashPassword(dto.Password),
                 UserRole = "Company",
                 IsKycVerified = false,
-                IsApproved = false, // <-- LA EMPRESA NACE BLOQUEADA
+                IsApproved = false, // Empresa entra como no aprobada por defecto (necesita ser aprobada)
                 CreatedAt = DateTime.UtcNow
             };
 
-            // 3. Crear el Perfil de la Empresa
+            // Crear el Perfil de la Empresa
             var companyProfile = new CompanyProfile
             {
                 UserId = user.Id,
@@ -117,7 +119,7 @@ namespace Witter.Api.Controllers
                 Sector = dto.Sector
             };
 
-            // 4. Guardar en la base de datos
+            // Guardar en la base de datos
             _context.Users.Add(user);
             _context.CompanyProfiles.Add(companyProfile);
             
@@ -133,8 +135,8 @@ namespace Witter.Api.Controllers
         [HttpGet("me")]
         public async Task<IActionResult> GetMyProfile()
         {
-            // 1. Extraer el ID del usuario directamente desde el Token JWT
-            // Buscamos la claim estándar o la claim personalizada "id" (dependiendo de cómo configuraste el login)
+            // Extraer el ID del usuario directamente desde el Token JWT
+            // Buscamos la claim estándar o la claim personalizada "id"
             var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value 
                               ?? User.FindFirst("id")?.Value; 
 
@@ -143,12 +145,12 @@ namespace Witter.Api.Controllers
                 return Unauthorized(new { Message = "Token inválido o falta el ID del usuario." });
             }
 
-            // 2. Buscar al usuario en la tabla principal
+            // Buscar al usuario en la tabla principal
             var user = await _context.Users.FindAsync(userId);
             if (user == null) 
                 return NotFound(new { Message = "Usuario no encontrado en la base de datos." });
 
-            // 3. Devolver los datos según el rol
+            // Devolver los datos según el rol
             if (user.UserRole == "Graduate")
             {
                 var profile = await _context.GraduateProfiles.FirstOrDefaultAsync(p => p.UserId == userId);
@@ -186,6 +188,7 @@ namespace Witter.Api.Controllers
 
         [Authorize]
         [HttpPut("me")]
+        [ValidateAntiForgeryToken]
         public async Task<IActionResult> UpdateMyProfile([FromBody] UpdateGraduateProfileDto dto)
         {
             var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value 
@@ -227,6 +230,7 @@ namespace Witter.Api.Controllers
 
         [Authorize]
         [HttpPut("me/skills")]
+        [ValidateAntiForgeryToken]
         public async Task<IActionResult> UpdateMySkills([FromBody] UpdateSkillsDto dto)
         {
             var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value 

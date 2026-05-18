@@ -4,6 +4,8 @@ using Microsoft.AspNetCore.Authentication.Cookies;
 using System.Text;
 using Microsoft.EntityFrameworkCore;
 using Witter.Api.Data;
+using Microsoft.AspNetCore.Mvc;
+
 
 // Configuración de Servicios
 var builder = WebApplication.CreateBuilder(args);
@@ -66,21 +68,28 @@ builder.Services.AddCors(options =>
 {
     options.AddPolicy("AllowReactApp", policy =>
     {
-        policy.WithOrigins("http://localhost:5173") // Dominio del fontend 
+        policy.WithOrigins("http://localhost:5173") // Ip del front
               .AllowAnyHeader()
               .AllowAnyMethod()
-              .AllowCredentials(); // Permitir el envio de cookies en solicitudes CORS para la autenticacion
+              .AllowCredentials(); // Permitimos el envio de cookies para autenticar
     });
 });
 
-// Protección CSRF
+// Configuracion para protección CSRF
 builder.Services.AddAntiforgery(options =>
 {
     options.HeaderName = "X-CSRF-TOKEN";
-    options.Cookie.SecurePolicy = CookieSecurePolicy.Always;
+    options.Cookie.SecurePolicy = CookieSecurePolicy.SameAsRequest; // **CAMBIARRRRR**
     options.Cookie.HttpOnly = true;
     options.Cookie.SameSite = SameSiteMode.Strict;
 });
+
+// Filtro global para validar tken CSRF en todas las solicitudes (excepto GET)
+builder.Services.AddControllersWithViews(options =>
+{
+    options.Filters.Add(new AutoValidateAntiforgeryTokenAttribute());
+});
+
 
 // Configuración de Pipelines HTTP
 var app = builder.Build();
