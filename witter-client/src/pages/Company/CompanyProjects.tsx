@@ -12,6 +12,7 @@ interface ProjectActive {
   progressPct: number;
   budget: number;
   colorClass: string;
+  status: string;
 }
 
 export default function CompanyProjects() {
@@ -35,6 +36,12 @@ export default function CompanyProjects() {
   }, []);
 
   if (loading) return <div style={{ padding: '40px', textAlign: 'center' }}>Cargando proyectos...</div>;
+
+  const getBadgeClassForStatus = (status: string) => {
+    if (status === 'Finalizado') return 'badge-finalizado';
+    if (status === 'En curso') return 'badge-curso';
+    return 'badge-activo';
+  };
 
   return (
     <>
@@ -67,7 +74,9 @@ export default function CompanyProjects() {
                   </div>
                 </div>
                 <div className="project-actions" style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
-                  <span className="badge badge-activo">Activo</span>
+                  <span className={`badge ${getBadgeClassForStatus(project.status || 'Activo')}`}>
+                    {project.status || 'Activo'}
+                  </span>
                   <Link to={`/company/projects/${project.id}`} className="btn btn-primary" style={{ padding: '8px 16px', fontSize: '14px' }}>
                     Ver Postulaciones
                   </Link>

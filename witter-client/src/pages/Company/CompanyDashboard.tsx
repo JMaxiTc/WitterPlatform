@@ -5,6 +5,7 @@ import witterApi from '../../api/witterApi';
 // Interfaces basadas en los modelos de tu base de datos
 interface MilestonePending {
   id: number;
+  projectId: number;
   title: string;
   projectName: string;
   graduateName: string;
@@ -22,6 +23,7 @@ interface ProjectActive {
   progressPct: number;
   budget: number;
   colorClass: string; // Para el diseño visual
+  status: string;
 }
 
 export default function CompanyDashboard() {
@@ -58,6 +60,12 @@ export default function CompanyDashboard() {
     alert(`Aprobando y liberando pago del hito ID: ${id}`);
     setPendingMilestones(prev => prev.filter(m => m.id !== id));
     setStats(prev => ({ ...prev, pendingMilestones: prev.pendingMilestones - 1 }));
+  };
+
+  const getBadgeClassForStatus = (status: string) => {
+    if (status === 'Finalizado') return 'badge-finalizado';
+    if (status === 'En curso') return 'badge-curso';
+    return 'badge-activo';
   };
 
   return (
@@ -149,7 +157,7 @@ export default function CompanyDashboard() {
                       <td><a href={`https://${milestone.repoUrl}`} target="_blank" rel="noreferrer" className="link">{milestone.repoUrl}</a></td>
                       <td style={{ display: 'flex', gap: '6px' }}>
                         <button className="btn btn-success btn-sm" onClick={() => handleApproveMilestone(milestone.id)}>✓ Liberar</button>
-                        <button className="btn btn-ghost btn-sm">Ver</button>
+                        <Link to={`/company/projects/${milestone.projectId}`} className="btn btn-ghost btn-sm">Ver</Link>
                       </td>
                     </tr>
                   ))}
@@ -186,7 +194,9 @@ export default function CompanyDashboard() {
                   </div>
                 </div>
                 <div className="project-actions" style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
-                  <span className="badge badge-activo">Activo</span>
+                  <span className={`badge ${getBadgeClassForStatus(project.status || 'Activo')}`}>
+                    {project.status || 'Activo'}
+                  </span>
                   <span className="code">${project.budget.toLocaleString('es-MX')} MXN</span>
                   <Link to={`/company/projects/${project.id}`} className="btn btn-ghost btn-sm" style={{ border: '1px solid var(--gray-300)' }}>Gestionar</Link>
                 </div>

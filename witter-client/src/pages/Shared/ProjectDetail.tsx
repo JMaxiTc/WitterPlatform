@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import witterApi from '../../api/witterApi';
+import { fetchCsrfToken } from '../../api/witterApi';
 
 interface MilestoneStep {
   id: number;
@@ -97,6 +98,7 @@ export default function ProjectDetail() {
 
   const handleUpdateApplication = async (applicationId: number, status: 'Accepted' | 'Rejected') => {
     try {
+      await fetchCsrfToken(); 
       await witterApi.put(`/projects/${id}/applications/${applicationId}/status`, { status });
       setApplications(prev => 
         prev.map(a => a.id === applicationId ? { ...a, applicationStatus: status } : a)
@@ -111,6 +113,7 @@ export default function ProjectDetail() {
     setIsApplying(true);
     setApplyMessage('');
     try {
+      await fetchCsrfToken(); 
       const response = await witterApi.post(`/projects/${id}/apply`);
       setApplyMessage(response.data.message || 'Te has postulado con éxito.');
       setHasApplied(true);
@@ -125,6 +128,7 @@ export default function ProjectDetail() {
   const handleSubmitMilestone = async (milestoneId: number) => {
     setSubmittingMilestone(milestoneId);
     try {
+      await fetchCsrfToken(); // Obtener el token ANTES de enviar el POST
       const msRepoUrl = repoUrls[milestoneId] || '';
       const msComment = comments[milestoneId] || '';
       
@@ -132,7 +136,7 @@ export default function ProjectDetail() {
       alert('Entregable subido exitosamente.');
       setRepoUrls(prev => ({ ...prev, [milestoneId]: '' }));
       setComments(prev => ({ ...prev, [milestoneId]: '' }));
-      fetchProjectDetails(); // Refrescar los hitos
+      await fetchProjectDetails();
     } catch (err: any) {
       alert(err.response?.data?.message || 'Error al enviar entregable.');
     } finally {
@@ -143,11 +147,12 @@ export default function ProjectDetail() {
   const handleReviewMilestone = async (milestoneId: number, isApproved: boolean) => {
     setReviewingMilestone(milestoneId);
     try {
+      await fetchCsrfToken(); // Obtener el token ANTES de enviar el POST
       const msFeedback = feedbacks[milestoneId] || '';
       await witterApi.post(`/projects/${id}/milestones/${milestoneId}/review`, { isApproved, feedback: msFeedback });
       alert(isApproved ? 'Hito aceptado y pago liberado.' : 'Hito rechazado.');
       setFeedbacks(prev => ({ ...prev, [milestoneId]: '' }));
-      fetchProjectDetails(); // Refrescar los hitos
+      await fetchProjectDetails(); 
     } catch (err: any) {
       alert(err.response?.data?.message || 'Error al revisar hito.');
     } finally {

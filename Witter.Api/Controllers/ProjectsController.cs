@@ -6,6 +6,7 @@ using Witter.Api.Data;
 using Witter.Api.DTOs;
 using Witter.Api.Models;
 
+
 namespace Witter.Api.Controllers
 {
     [ApiController]
@@ -273,6 +274,11 @@ namespace Witter.Api.Controllers
 
             application.ApplicationStatus = dto.Status;
             
+            if (dto.Status == "Accepted") 
+            {
+                project.Status = "En curso";
+            }
+            
             // Opcional: si se acepta una, podríamos rechazar a los demás o cambiar el estado del proyecto. Lo mantendremos simple por ahora.
             
             await _context.SaveChangesAsync();
@@ -337,10 +343,20 @@ namespace Witter.Api.Controllers
             submission.IsApproved = dto.IsApproved;
             submission.Feedback = dto.Feedback ?? "";
 
-            if (dto.IsApproved) {
+            if (dto.IsApproved)
+            {
                 milestone.Status = "Liberado";
-            } else {
-                milestone.Status = "Rechazado";
+                await _context.SaveChangesAsync();
+                
+                // Buscar si todos los hitos de este proyecto ya están liberados
+                var allMilestones = await _context.Milestones.Where(m => m.ProjectId == id).ToListAsync();
+                if (allMilestones.All(m => m.Status == "Liberado")) 
+                {
+                    project.Status = "Completed";
+                }
+            } else
+            {
+             milestone.Status = "Rechazado";   
             }
 
             await _context.SaveChangesAsync();

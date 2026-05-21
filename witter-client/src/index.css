@@ -227,6 +227,10 @@
   .badge-kyc::before     { background: var(--violet-500);}
   .badge-activo  { background: var(--green-100);  color: var(--green-700);  }
   .badge-activo::before  { background: var(--green-500);}
+  .badge-curso     { background: var(--blue-100); color: var(--blue-700); }
+  .badge-curso::before     { background: var(--blue-500);}
+  .badge-finalizado { background: var(--gray-200); color: var(--gray-700); }
+  .badge-finalizado::before { background: var(--gray-500); }
   .badge-verificado{ background: var(--blue-100); color: var(--blue-700); }
   .badge-verificado::before{ background: var(--blue-500);}
 

@@ -66,6 +66,7 @@ namespace Witter.Api.Controllers
 
                 return new {
                     id = m.Id,
+                    projectId = m.ProjectId,
                     title = m.Title,
                     projectName = project?.Title ?? "Desconocido",
                     graduateName = graduateName,
@@ -92,7 +93,8 @@ namespace Witter.Api.Controllers
                     totalMilestones = projectMilestones.Count > 0 ? projectMilestones.Count : 1,
                     progressPct = projectMilestones.Count > 0 ? (approvedCount * 100) / projectMilestones.Count : 0,
                     budget = p.Budget,
-                    colorClass = "var(--blue-500)"
+                    colorClass = "var(--blue-500)",
+                    status = p.Status == "Completed" ? "Finalizado" : (p.Status == "En curso" ? "En curso" : "Activo")
                 };
             }).ToList();
 
