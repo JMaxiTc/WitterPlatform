@@ -160,7 +160,11 @@ export default function GraduateDashboard() {
                           {project.status}
                         </span>
                       </td>
-                      <td><button className="btn btn-ghost btn-sm">Ver detalle</button></td>
+                      <td>
+                        <Link to={`/graduate/projects/${project.id}`} className="btn btn-ghost btn-sm">
+                          Ver detalle
+                        </Link>
+                      </td>
                     </tr>
                   ))}
                 </tbody>

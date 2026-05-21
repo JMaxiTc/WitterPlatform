@@ -9,6 +9,11 @@ interface MilestoneStep {
   description: string;
   amount: number;
   status?: string; // Todavía lo podemos simular o traer de BD según tu modelo
+  latestSubmission?: {
+    repoUrl: string;
+    comment: string;
+    feedback: string;
+  };
 }
 
 interface ApplicationData {
@@ -46,36 +51,47 @@ export default function ProjectDetail() {
   const [isApplying, setIsApplying] = useState(false);
   const [applyMessage, setApplyMessage] = useState('');
   const [hasApplied, setHasApplied] = useState(false);
+  const [myApplicationStatus, setMyApplicationStatus] = useState<string | null>(null);
+
+  // Estados para entregar hito
+  const [submittingMilestone, setSubmittingMilestone] = useState<number | null>(null);
+  const [repoUrls, setRepoUrls] = useState<{ [key: number]: string }>({});
+  const [comments, setComments] = useState<{ [key: number]: string }>({});
+
+  // Estados para revisar hito (empresa)
+  const [reviewingMilestone, setReviewingMilestone] = useState<number | null>(null);
+  const [feedbacks, setFeedbacks] = useState<{ [key: number]: string }>({});
   
   const userRole = localStorage.getItem('role');
 
-  useEffect(() => {
-    const fetchProjectDetails = async () => {
-      try {
-        const response = await witterApi.get(`/projects/${id}`);
-        setProject(response.data);
+  const fetchProjectDetails = async () => {
+    try {
+      const response = await witterApi.get(`/projects/${id}`);
+      setProject(response.data);
 
-        // Si es empresa, obtener postulaciones
-        if (localStorage.getItem('role') === 'Company') {
-          const appResponse = await witterApi.get(`/projects/${id}/applications`);
-          setApplications(appResponse.data);
-        }
-
-        // Si es egresado, verificar si ya aplicó a este proyecto particular
-        if (localStorage.getItem('role') === 'Graduate') {
-          const myAppsRes = await witterApi.get(`/projects/my-applications`);
-          const alreadyApplied = myAppsRes.data.some((app: any) => app.projectId === Number(id));
-          if (alreadyApplied) {
-            setHasApplied(true);
-          }
-        }
-      } catch (err: any) {
-        setError(err.response?.data?.message || 'Error al cargar el proyecto.');
-      } finally {
-        setIsLoading(false);
+      // Si es empresa, obtener postulaciones
+      if (localStorage.getItem('role') === 'Company') {
+        const appResponse = await witterApi.get(`/projects/${id}/applications`);
+        setApplications(appResponse.data);
       }
-    };
-    
+
+      // Si es egresado, verificar si ya aplicó a este proyecto particular
+      if (localStorage.getItem('role') === 'Graduate') {
+        const myAppsRes = await witterApi.get(`/projects/my-applications`);
+        const myApp = myAppsRes.data.find((app: any) => app.projectId === Number(id));
+        if (myApp) {
+          setHasApplied(true);
+          setMyApplicationStatus(myApp.applicationStatus);
+        }
+      }
+    } catch (err: any) {
+      setError(err.response?.data?.message || 'Error al cargar el proyecto.');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  useEffect(() => {
     if (id) fetchProjectDetails();
   }, [id]);
 
@@ -98,10 +114,44 @@ export default function ProjectDetail() {
       const response = await witterApi.post(`/projects/${id}/apply`);
       setApplyMessage(response.data.message || 'Te has postulado con éxito.');
       setHasApplied(true);
+      setMyApplicationStatus('Pending');
     } catch (err: any) {
       setApplyMessage(err.response?.data?.message || 'Hubo un error al postularte.');
     } finally {
       setIsApplying(false);
+    }
+  };
+
+  const handleSubmitMilestone = async (milestoneId: number) => {
+    setSubmittingMilestone(milestoneId);
+    try {
+      const msRepoUrl = repoUrls[milestoneId] || '';
+      const msComment = comments[milestoneId] || '';
+      
+      await witterApi.post(`/projects/${id}/milestones/${milestoneId}/submit`, { repoUrl: msRepoUrl, comment: msComment });
+      alert('Entregable subido exitosamente.');
+      setRepoUrls(prev => ({ ...prev, [milestoneId]: '' }));
+      setComments(prev => ({ ...prev, [milestoneId]: '' }));
+      fetchProjectDetails(); // Refrescar los hitos
+    } catch (err: any) {
+      alert(err.response?.data?.message || 'Error al enviar entregable.');
+    } finally {
+      setSubmittingMilestone(null);
+    }
+  };
+
+  const handleReviewMilestone = async (milestoneId: number, isApproved: boolean) => {
+    setReviewingMilestone(milestoneId);
+    try {
+      const msFeedback = feedbacks[milestoneId] || '';
+      await witterApi.post(`/projects/${id}/milestones/${milestoneId}/review`, { isApproved, feedback: msFeedback });
+      alert(isApproved ? 'Hito aceptado y pago liberado.' : 'Hito rechazado.');
+      setFeedbacks(prev => ({ ...prev, [milestoneId]: '' }));
+      fetchProjectDetails(); // Refrescar los hitos
+    } catch (err: any) {
+      alert(err.response?.data?.message || 'Error al revisar hito.');
+    } finally {
+      setReviewingMilestone(null);
     }
   };
 
@@ -172,17 +222,132 @@ export default function ProjectDetail() {
 
           <div className="milestone-steps" style={{ marginTop: '20px' }}>
             {project.milestones?.map((ms, index) => (
-              <div className="ms-step" key={ms.id}>
-                <div className="ms-dot-wrap">
-                  <div className="ms-dot ms-dot-pending">{ms.stepNumber}</div>
-                  {index < project.milestones.length - 1 && <div className="ms-line"></div>}
+              <div className="ms-step" key={ms.id} style={{ display: 'flex', gap: '16px', marginBottom: '24px' }}>
+                <div className="ms-dot-wrap" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+                  <div className={`ms-dot ${ms.status === 'Liberado' ? 'ms-dot-success' : 'ms-dot-pending'}`} style={{
+                    width: '32px', height: '32px', borderRadius: '50%', background: ms.status === 'Liberado' ? '#22c55e' : 'var(--blue-600)',
+                    color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 'bold'
+                  }}>{ms.stepNumber}</div>
+                  {index < project.milestones.length - 1 && <div className="ms-line" style={{ width: '2px', background: 'var(--gray-200)', flex: 1, margin: '8px 0' }}></div>}
                 </div>
-                <div className="ms-body">
-                  <div className="ms-title">{ms.title}</div>
-                  <div className="ms-desc">{ms.description}</div>
-                  <div className="ms-amount" style={{ color: 'var(--blue-600)', marginTop: '8px' }}>
+                <div className="ms-body" style={{ flex: 1, paddingBottom: '16px' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                    <div>
+                      <div className="ms-title" style={{ fontSize: '18px', fontWeight: 600, color: 'var(--blue-950)' }}>{ms.title}</div>
+                      <div className="ms-desc" style={{ color: 'var(--gray-500)', marginTop: '4px' }}>{ms.description}</div>
+                    </div>
+                    {ms.status && (
+                      <span className="badge" style={{ 
+                        background: ms.status === 'Liberado' ? '#dcfce7' : ms.status === 'En revisión' ? '#fef08a' : ms.status === 'Rechazado' ? '#fee2e2' : '#f1f5f9',
+                        color: ms.status === 'Liberado' ? '#166534' : ms.status === 'En revisión' ? '#854d0e' : ms.status === 'Rechazado' ? '#991b1b' : '#475569'
+                      }}>
+                        {ms.status}
+                      </span>
+                    )}
+                  </div>
+                  <div className="ms-amount" style={{ color: 'var(--blue-600)', marginTop: '8px', fontWeight: 700 }}>
                     ${ms.amount.toLocaleString('es-MX')} MXN
                   </div>
+
+                  {ms.latestSubmission?.feedback && (ms.status === 'Liberado' || ms.status === 'Rechazado') && userRole === 'Graduate' && (
+                    <div style={{ marginTop: '16px', background: ms.status === 'Liberado' ? '#f0fdf4' : '#fef2f2', padding: '12px', borderRadius: '8px', border: `1px solid ${ms.status === 'Liberado' ? '#bbf7d0' : '#fecaca'}` }}>
+                      <div style={{ fontSize: '12px', color: ms.status === 'Liberado' ? '#166534' : '#991b1b', fontWeight: 600, marginBottom: '4px', textTransform: 'uppercase' }}>Comentario de la empresa</div>
+                      <div style={{ fontSize: '14px', color: ms.status === 'Liberado' ? '#14532d' : '#7f1d1d', whiteSpace: 'pre-wrap' }}>{ms.latestSubmission.feedback}</div>
+                    </div>
+                  )}
+
+                  {ms.latestSubmission && (ms.status === 'Liberado' || ms.status === 'Rechazado') && userRole === 'Company' && (
+                    <div style={{ marginTop: '16px', background: '#f8fafc', padding: '16px', borderRadius: '8px', border: '1px solid #e2e8f0' }}>
+                      <div style={{ fontWeight: 600, fontSize: '13px', color: '#0f172a', marginBottom: '8px' }}>Historial del entregable</div>
+                      <div style={{ marginBottom: '16px', padding: '12px', background: 'white', borderRadius: '6px', border: '1px solid #e2e8f0' }}>
+                         <div style={{ fontSize: '12px', color: '#64748b', fontWeight: 600, marginBottom: '4px' }}>ENLACE / REPOSITORIO</div>
+                         <a href={ms.latestSubmission.repoUrl.startsWith('http') ? ms.latestSubmission.repoUrl : `https://${ms.latestSubmission.repoUrl}`} target="_blank" rel="noreferrer" style={{ color: 'var(--blue-600)', wordBreak: 'break-all', display: 'block', marginBottom: '8px' }}>
+                           {ms.latestSubmission.repoUrl}
+                         </a>
+                         {ms.latestSubmission.comment && (
+                           <>
+                             <div style={{ fontSize: '12px', color: '#64748b', fontWeight: 600, marginBottom: '4px' }}>COMENTARIOS DEL EGRESADO</div>
+                             <div style={{ fontSize: '14px', color: '#334155', whiteSpace: 'pre-wrap' }}>{ms.latestSubmission.comment}</div>
+                           </>
+                         )}
+                      </div>
+                    </div>
+                  )}
+
+                  {userRole === 'Graduate' && myApplicationStatus === 'Accepted' && ms.status !== 'Liberado' && ms.status !== 'En revisión' && (
+                    <div style={{ marginTop: '16px', background: '#f8fafc', padding: '16px', borderRadius: '8px', border: '1px solid #e2e8f0' }}>
+                      <div style={{ fontWeight: 600, fontSize: '12px', color: '#64748b', marginBottom: '8px' }}>ENTREGABLE ACTUAL</div>
+                      <input 
+                        type="text" 
+                        placeholder="ej. github.com/tu-usuario/tu-repo/pull/42" 
+                        value={repoUrls[ms.id] || ''} 
+                        onChange={e => setRepoUrls(prev => ({ ...prev, [ms.id]: e.target.value }))} 
+                        style={{ width: '100%', padding: '10px', borderRadius: '6px', border: '1px solid #cbd5e1', marginBottom: '8px' }} 
+                      />
+                      <input 
+                        type="text" 
+                        placeholder="Comentarios adicionales (opcional)" 
+                        value={comments[ms.id] || ''} 
+                        onChange={e => setComments(prev => ({ ...prev, [ms.id]: e.target.value }))} 
+                        style={{ width: '100%', padding: '10px', borderRadius: '6px', border: '1px solid #cbd5e1', marginBottom: '12px' }} 
+                      />
+                      <button 
+                        className="btn btn-primary" 
+                        style={{ width: '100%', display: 'flex', justifyContent: 'center' }} 
+                        onClick={() => handleSubmitMilestone(ms.id)}
+                        disabled={submittingMilestone === ms.id || !repoUrls[ms.id]}
+                      >
+                        {submittingMilestone === ms.id ? 'Enviando...' : 'Subir entregable'}
+                      </button>
+                    </div>
+                  )}
+
+                  {userRole === 'Company' && ms.status === 'En revisión' && (
+                    <div style={{ marginTop: '16px', background: '#f8fafc', padding: '16px', borderRadius: '8px', border: '1px solid #e2e8f0' }}>
+                      <div style={{ fontWeight: 600, fontSize: '13px', color: '#0f172a', marginBottom: '8px' }}>Entregable en revisión</div>
+                      
+                      {ms.latestSubmission && (
+                        <div style={{ marginBottom: '16px', padding: '12px', background: 'white', borderRadius: '6px', border: '1px solid #e2e8f0' }}>
+                           <div style={{ fontSize: '12px', color: '#64748b', fontWeight: 600, marginBottom: '4px' }}>ENLACE / REPOSITORIO</div>
+                           <a href={ms.latestSubmission.repoUrl.startsWith('http') ? ms.latestSubmission.repoUrl : `https://${ms.latestSubmission.repoUrl}`} target="_blank" rel="noreferrer" style={{ color: 'var(--blue-600)', wordBreak: 'break-all', display: 'block', marginBottom: '8px' }}>
+                             {ms.latestSubmission.repoUrl}
+                           </a>
+                           {ms.latestSubmission.comment && (
+                             <>
+                               <div style={{ fontSize: '12px', color: '#64748b', fontWeight: 600, marginBottom: '4px' }}>COMENTARIOS DEL EGRESADO</div>
+                               <div style={{ fontSize: '14px', color: '#334155', whiteSpace: 'pre-wrap' }}>{ms.latestSubmission.comment}</div>
+                             </>
+                           )}
+                        </div>
+                      )}
+
+                      <input 
+                        type="text" 
+                        placeholder="Comentarios o feedback para el egresado (opcional)" 
+                        value={feedbacks[ms.id] || ''} 
+                        onChange={e => setFeedbacks(prev => ({ ...prev, [ms.id]: e.target.value }))} 
+                        style={{ width: '100%', padding: '10px', borderRadius: '6px', border: '1px solid #cbd5e1', marginBottom: '12px' }} 
+                      />
+                      <div style={{ display: 'flex', gap: '8px' }}>
+                        <button 
+                          className="btn" 
+                          style={{ flex: 1, background: '#16a34a', color: 'white', border: 'none', display: 'flex', justifyContent: 'center' }} 
+                          onClick={() => handleReviewMilestone(ms.id, true)}
+                          disabled={reviewingMilestone === ms.id}
+                        >
+                          Aceptar y Liberar Pago
+                        </button>
+                        <button 
+                          className="btn" 
+                          style={{ flex: 1, background: '#dc2626', color: 'white', border: 'none', display: 'flex', justifyContent: 'center' }} 
+                          onClick={() => handleReviewMilestone(ms.id, false)}
+                          disabled={reviewingMilestone === ms.id}
+                        >
+                          Rechazar
+                        </button>
+                      </div>
+                    </div>
+                  )}
                 </div>
               </div>
             ))}

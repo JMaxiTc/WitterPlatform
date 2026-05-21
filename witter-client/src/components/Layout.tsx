@@ -1,5 +1,5 @@
 import type { ReactNode } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useLocation } from 'react-router-dom';
 import { mdiMagnify } from '@mdi/js';
 
 interface LayoutProps {
@@ -11,6 +11,7 @@ interface LayoutProps {
 
 // 2. Extraemos onLogout de las propiedades
 export default function Layout({ children, role, userName, onLogout }: LayoutProps) { 
+  const location = useLocation();
   
   // 3. Eliminamos el handleLogout interno que teníamos aquí.
 

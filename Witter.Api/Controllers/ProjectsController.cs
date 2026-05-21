@@ -179,7 +179,13 @@ namespace Witter.Api.Controllers
                                     m.StepNumber, 
                                     m.Title, 
                                     m.Description, 
-                                    m.Amount 
+                                    m.Amount,
+                                    m.Status,
+                                    LatestSubmission = _context.Submissions
+                                        .Where(s => s.MilestoneId == m.Id)
+                                        .OrderByDescending(s => s.SubmittedAt)
+                                        .Select(s => new { s.RepoUrl, s.Comment, s.Feedback })
+                                        .FirstOrDefault()
                                 })
                                 .ToList()
                 })
@@ -272,6 +278,95 @@ namespace Witter.Api.Controllers
             await _context.SaveChangesAsync();
 
             return Ok(new { Message = $"Postulación {(dto.Status == "Accepted" ? "aceptada" : "rechazada")} exitosamente." });
+        }
+
+        // Método para enviar entrega de un hito (egresado)
+        [HttpPost("{id}/milestones/{milestoneId}/submit")]
+        [Authorize(Roles = "Graduate")]
+        public async Task<IActionResult> SubmitMilestone(int id, int milestoneId, [FromBody] SubmissionSubmitDto dto)
+        {
+            var userIdStr = User.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? User.FindFirst("id")?.Value;
+            if (!Guid.TryParse(userIdStr, out Guid graduateId)) return Unauthorized();
+
+            var project = await _context.Projects.FindAsync(id);
+            if (project == null) return NotFound(new { Message = "Proyecto no encontrado." });
+
+            var milestone = await _context.Milestones.FirstOrDefaultAsync(m => m.Id == milestoneId && m.ProjectId == id);
+            if (milestone == null) return NotFound(new { Message = "Hito no encontrado." });
+
+            // Verificar postulación aceptada
+            var app = await _context.Applications.FirstOrDefaultAsync(a => a.ProjectId == id && a.GraduateId == graduateId && a.ApplicationStatus == "Accepted");
+            if (app == null) return BadRequest(new { Message = "No estás asignado a este proyecto." });
+
+            var submission = new Submission
+            {
+                MilestoneId = milestoneId,
+                GraduateId = graduateId,
+                RepoUrl = dto.RepoUrl ?? "",
+                Comment = dto.Comment ?? "",
+                Feedback = "",
+                SubmittedAt = DateTime.UtcNow,
+                IsApproved = false
+            };
+
+            milestone.Status = "En revisión";
+
+            _context.Submissions.Add(submission);
+            await _context.SaveChangesAsync();
+
+            return Ok(new { Message = "Entrega enviada exitosamente para revisión." });
+        }
+
+        // Método para revisar entrega (empresa)
+        [HttpPost("{id}/milestones/{milestoneId}/review")]
+        [Authorize(Roles = "Company")]
+        public async Task<IActionResult> ReviewMilestone(int id, int milestoneId, [FromBody] SubmissionReviewDto dto)
+        {
+            var userIdStr = User.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? User.FindFirst("id")?.Value;
+            if (!Guid.TryParse(userIdStr, out Guid companyUserId)) return Unauthorized();
+
+            var project = await _context.Projects.FirstOrDefaultAsync(p => p.Id == id && p.CompanyId == companyUserId);
+            if (project == null) return NotFound(new { Message = "Proyecto no encontrado o no autorizado." });
+
+            var milestone = await _context.Milestones.FirstOrDefaultAsync(m => m.Id == milestoneId && m.ProjectId == id);
+            if (milestone == null) return NotFound(new { Message = "Hito no encontrado." });
+
+            var submission = await _context.Submissions.Where(s => s.MilestoneId == milestoneId).OrderByDescending(s => s.SubmittedAt).FirstOrDefaultAsync();
+            if (submission == null) return NotFound(new { Message = "No hay entregas para este hito." });
+
+            submission.IsApproved = dto.IsApproved;
+            submission.Feedback = dto.Feedback ?? "";
+
+            if (dto.IsApproved) {
+                milestone.Status = "Liberado";
+            } else {
+                milestone.Status = "Rechazado";
+            }
+
+            await _context.SaveChangesAsync();
+
+            return Ok(new { Message = dto.IsApproved ? "Hito aprobado y pago liberado." : "Hito rechazado." });
+        }
+
+        // Obtener entregas de un hito
+        [HttpGet("{id}/milestones/{milestoneId}/submissions")]
+        [Authorize]
+        public async Task<IActionResult> GetMilestoneSubmissions(int id, int milestoneId)
+        {
+            var submissions = await _context.Submissions
+                .Where(s => s.MilestoneId == milestoneId)
+                .OrderByDescending(s => s.SubmittedAt)
+                .Select(s => new {
+                    s.Id,
+                    s.RepoUrl,
+                    s.Comment,
+                    s.Feedback,
+                    s.SubmittedAt,
+                    s.IsApproved
+                })
+                .ToListAsync();
+
+            return Ok(submissions);
         }
     }
 }

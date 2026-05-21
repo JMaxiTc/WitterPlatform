@@ -4,6 +4,8 @@ using Microsoft.EntityFrameworkCore;
 using System.Security.Claims;
 using Witter.Api.Data;
 
+using Witter.Api.Models;
+
 namespace Witter.Api.Controllers
 {
     [ApiController]
@@ -51,12 +53,10 @@ namespace Witter.Api.Controllers
             // Total budget in escrow for active projects
             var escrowTotal = activeProjects.Sum(p => p.Budget);
             
-            // Pending milestones (Status == "PendingReview" or similar, just taking all Pending for now as a mock)
+            // Pending milestones 
             var pendingMilestonesEntity = milestones
-                .Where(m => m.Status == "PendingReview" || m.Status == "Pending" || m.Status == "UnderReview") // Adding "Pending" because new ones are Pending
+                .Where(m => m.Status == "En revisión")
                 .ToList();
-
-            var paymentsReleased = milestones.Where(m => m.Status == "Approved" || m.Status == "Paid").Sum(m => m.Amount);
 
             var pendingMilestones = pendingMilestonesEntity.Select(m => {
                 var project = projects.FirstOrDefault(p => p.Id == m.ProjectId);
@@ -81,14 +81,16 @@ namespace Witter.Api.Controllers
                 var graduate = application != null ? graduates.FirstOrDefault(g => g.UserId == application.GraduateId) : null;
                 var graduateName = graduate != null ? $"{graduate.FirstName} {graduate.LastName}" : "Buscando Talento...";
 
+                var approvedCount = projectMilestones.Count(m => m.Status == "Liberado");
+
                 return new {
                     id = p.Id,
                     name = p.Title,
                     graduateName = graduateName,
                     startDate = p.CreatedAt.ToString("dd/MM/yyyy"),
-                    currentMilestone = projectMilestones.Count(m => m.Status == "Approved" || m.Status == "Paid") + 1,
-                    totalMilestones = projectMilestones.Count,
-                    progressPct = projectMilestones.Count > 0 ? (projectMilestones.Count(m => m.Status == "Approved" || m.Status == "Paid") * 100) / projectMilestones.Count : 0,
+                    currentMilestone = Math.Min(approvedCount + 1, projectMilestones.Count > 0 ? projectMilestones.Count : 1),
+                    totalMilestones = projectMilestones.Count > 0 ? projectMilestones.Count : 1,
+                    progressPct = projectMilestones.Count > 0 ? (approvedCount * 100) / projectMilestones.Count : 0,
                     budget = p.Budget,
                     colorClass = "var(--blue-500)"
                 };
@@ -98,12 +100,16 @@ namespace Witter.Api.Controllers
                 escrowTotal = escrowTotal,
                 stats = new {
                     activeProjects = activeProjects.Count,
-                    paymentsReleased = paymentsReleased,
+                    paymentsReleased = projectMilestonesGlobalApprovedSum(milestones),
                     pendingMilestones = pendingMilestones.Count
                 },
                 pendingMilestones = pendingMilestones,
                 activeProjects = activeProjectsDto
             });
+        }
+        
+        private decimal projectMilestonesGlobalApprovedSum(List<Milestone> milestones) {
+            return milestones.Where(m => m.Status == "Liberado").Sum(m => m.Amount);
         }
 
         [HttpGet("graduate")]
@@ -136,7 +142,7 @@ namespace Witter.Api.Controllers
 
             var activeProjects = projects.Where(p => p.Status != "Closed").ToList();
 
-            var completedMilestones = milestones.Where(m => m.Status == "Paid" || m.Status == "Approved").ToList();
+            var completedMilestones = milestones.Where(m => m.Status == "Liberado").ToList();
             var totalEarnings = completedMilestones.Sum(m => m.Amount);
             
             var paymentHistory = completedMilestones.Select(m => new {
