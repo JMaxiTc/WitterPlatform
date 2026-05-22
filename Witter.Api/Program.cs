@@ -56,7 +56,7 @@ builder.Services.AddAuthentication(options =>
     options.Cookie.Name = "WitterAuthToken";
     options.Cookie.HttpOnly = true;
     options.Cookie.SecurePolicy = CookieSecurePolicy.Always;
-    options.Cookie.SameSite = SameSiteMode.Strict;
+    options.Cookie.SameSite = SameSiteMode.None;
     options.Cookie.Path = "/";
 });
 
