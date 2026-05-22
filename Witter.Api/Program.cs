@@ -102,10 +102,15 @@ builder.Services.AddControllersWithViews(options =>
 var app = builder.Build();
 
 // Permitir que .NET sepa que el proxy de la nube maneja HTTPS
-app.UseForwardedHeaders(new ForwardedHeadersOptions
+var forwardedHeadersOptions = new ForwardedHeadersOptions
 {
     ForwardedHeaders = ForwardedHeaders.XForwardedFor | ForwardedHeaders.XForwardedProto
-});
+};
+// Le decimos .NET que confíe en todos los balanceadores de carga proxy
+forwardedHeadersOptions.KnownIPNetworks.Clear();
+forwardedHeadersOptions.KnownProxies.Clear();
+
+app.UseForwardedHeaders(forwardedHeadersOptions);
 
 // Encabezados de Seguridad
 app.Use(async (context, next) =>
