@@ -40,7 +40,7 @@ namespace Witter.Api.Controllers
 
         // Aprobar una empresa
         [HttpPut("approve-company/{userId}")]
-        [IgnoreAntiforgeryToken]
+        [ValidateAntiForgeryToken]
         public async Task<IActionResult> ApproveCompany(Guid userId)
         {
             var user = await _context.Users.FindAsync(userId);
