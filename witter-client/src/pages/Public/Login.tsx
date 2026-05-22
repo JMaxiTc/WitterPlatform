@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import witterApi from '../../api/witterApi';
 import { useNavigate } from 'react-router-dom';
+import { GoogleLogin } from '@react-oauth/google';
 
 interface LoginProps {
   setAuth: (auth: boolean) => void;
@@ -56,6 +57,45 @@ export default function Login({ setAuth, setRole, setName }: LoginProps) {
     }
   };
 
+  const handleGoogleSuccess = async (credentialResponse: any) => {
+    setError('');
+    setIsLoading(true);
+
+    try {
+      const response = await witterApi.post('/auth/google-login', {
+        token: credentialResponse.credential
+      });
+      
+      const { role, token } = response.data;
+
+      if (token) {
+        localStorage.setItem('token', token);
+      }
+
+      localStorage.setItem('role', response.data.role);
+      localStorage.setItem('fullName', response.data.fullName);
+      localStorage.setItem('userId', response.data.userId);
+
+      const userNameToSave = response.data.fullName || response.data.email || 'Mi Perfil';
+      localStorage.setItem('userName', userNameToSave);
+      
+      setRole(role);
+      setName(userNameToSave);
+      setAuth(true);
+
+      if (role === 'Company') {
+        navigate('/company/dashboard');
+      } else {
+        navigate('/graduate/dashboard');
+      }
+
+    } catch (err: any) {
+      setError(err.response?.data?.message || 'Error al iniciar sesión con Google');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   return (
     <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '100vh', background: 'var(--blue-950)' }}>
       <div className="card" style={{ maxWidth: '400px', width: '100%', padding: '30px' }}>
@@ -105,6 +145,22 @@ export default function Login({ setAuth, setRole, setName }: LoginProps) {
             {isLoading ? 'Verificando...' : 'Entrar a mi cuenta'}
           </button>
         </form>
+
+        <div style={{ display: 'flex', alignItems: 'center', margin: '20px 0' }}>
+          <div style={{ flex: 1, height: '1px', background: 'var(--gray-200)' }}></div>
+          <span style={{ padding: '0 10px', color: 'var(--gray-500)', fontSize: '12px' }}>o continúa con</span>
+          <div style={{ flex: 1, height: '1px', background: 'var(--gray-200)' }}></div>
+        </div>
+
+        <div style={{ display: 'flex', justifyContent: 'center', width: '100%' }}>
+          <GoogleLogin
+            onSuccess={handleGoogleSuccess}
+            onError={() => {
+              setError('Ocurrió un problema al intentar conectar con Google.');
+            }}
+            useOneTap
+          />
+        </div>
 
         <div style={{ textAlign: 'center', marginTop: '20px', fontSize: '12px' }}>
           <span style={{ color: 'var(--gray-500)' }}>¿No tienes cuenta? </span>

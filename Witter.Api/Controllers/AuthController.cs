@@ -7,6 +7,7 @@ using System.Security.Claims;
 using System.Text;
 using Witter.Api.Data;
 using Witter.Api.DTOs;
+using Google.Apis.Auth;
 
 namespace Witter.Api.Controllers
 {
@@ -102,6 +103,125 @@ namespace Witter.Api.Controllers
                 UserId = user.Id,
                 FullName = fullName
                 });
+        }
+
+        [HttpPost("google-login")]
+        [IgnoreAntiforgeryToken]
+        public async Task<IActionResult> GoogleLogin([FromBody] GoogleLoginDto googleLoginData)
+        {
+            try
+            {
+                // Configuración de validación de Google
+                var settings = new GoogleJsonWebSignature.ValidationSettings()
+                {
+                    // Puedes especificar qué Client ID(s) son válidos si lo requieres.
+                    // Audience = new List<string>() { _configuration["Google:ClientId"] }
+                };
+
+                // Validamos el token JWT de google, si es inválido se lanzará una excepción
+                var payload = await GoogleJsonWebSignature.ValidateAsync(googleLoginData.Token, settings);
+                
+                // Buscar si existe un usuario con ese correo
+                var user = await _context.Users.FirstOrDefaultAsync(u => u.Email == payload.Email);
+                
+                string fullName = payload.Name ?? payload.Email;
+
+                if (user == null)
+                {
+                    // Si el usuario no existe, creamos su cuenta automáticamente con el rol "Graduate" (Egresado)
+                    user = new Models.User
+                    {
+                        Id = Guid.NewGuid(),
+                        Email = payload.Email,
+                        PasswordHash = "", // Sin contraseña, ya que usa SSO
+                        UserRole = "Graduate", 
+                        CreatedAt = DateTime.UtcNow,
+                        IsKycVerified = false,
+                        IsApproved = true // Egresados no requieren aprobación por defecto
+                    };
+
+                    _context.Users.Add(user);
+
+                    // Agregamos también su perfil básico de egresado
+                    var newProfile = new Models.GraduateProfile
+                    {
+                        UserId = user.Id,
+                        FirstName = payload.GivenName ?? "Usuario",
+                        LastName = payload.FamilyName ?? "Google",
+                        DateOfBirth = DateTime.UtcNow
+                    };
+
+                    _context.GraduateProfiles.Add(newProfile);
+                    await _context.SaveChangesAsync();
+
+                    fullName = $"{newProfile.FirstName} {newProfile.LastName}";
+                }
+                else
+                {
+                    if (!user.IsApproved)
+                    {
+                        return Unauthorized(new { Message = "Tu cuenta está en revisión por el Superusuario. Te notificaremos pronto." });
+                    }
+
+                    // Obtener el nombre correspondiente al perfil existente
+                    if (user.UserRole == "Graduate")
+                    {
+                        var profile = await _context.GraduateProfiles.FirstOrDefaultAsync(p => p.UserId == user.Id);
+                        if (profile != null) fullName = $"{profile.FirstName} {profile.LastName}";
+                    }
+                    else if (user.UserRole == "Company")
+                    {
+                        var profile = await _context.CompanyProfiles.FirstOrDefaultAsync(p => p.UserId == user.Id);
+                        if (profile != null) fullName = profile.CompanyName;
+                    }
+                    else if (user.UserRole == "Admin")
+                    {
+                        fullName = user.Email.Split('@')[0];
+                        if (!string.IsNullOrEmpty(fullName))
+                        {
+                            fullName = char.ToUpper(fullName[0]) + fullName.Substring(1);
+                        }
+                    }
+                }
+
+                // Generamos el propio token de autorización
+                var token = GenerateJwtToken(user.Id.ToString(), user.Email, user.UserRole);
+
+                Response.Cookies.Delete("WitterAuthToken", new CookieOptions
+                {
+                    HttpOnly = true,
+                    Secure = true,
+                    SameSite = SameSiteMode.Strict,
+                    Path = "/"
+                });
+
+                var cookieOptions = new CookieOptions
+                {
+                    HttpOnly = true,
+                    Secure = true,
+                    SameSite = SameSiteMode.Strict,
+                    Expires = DateTime.UtcNow.AddHours(2),
+                    Path = "/"
+                };
+
+                Response.Cookies.Append("WitterAuthToken", token, cookieOptions);
+
+                return Ok(new
+                {
+                    Message = "Login exitoso con Google",
+                    Role = user.UserRole,
+                    UserId = user.Id,
+                    FullName = fullName
+                });
+            }
+            catch (InvalidJwtException)
+            {
+                return Unauthorized(new { Message = "El token de Google es inválido." });
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(new { Message = "Ocurrió un error authenticando con google.", Details = ex.Message });
+            }
         }
 
         [HttpPost("logout")]
