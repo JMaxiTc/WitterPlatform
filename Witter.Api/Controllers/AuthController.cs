@@ -25,13 +25,20 @@ namespace Witter.Api.Controllers
         }
 
         [HttpGet("csrf-token")]
+        [IgnoreAntiforgeryToken]
         public IActionResult GetCsrfToken([FromServices] IAntiforgery antiforgery)
         {
-            // Genera y almacena el token CSRF en cookie 
-            var tokens = antiforgery.GetAndStoreTokens(HttpContext);
-            
-            // Retornamos el RequestToken al cliente
-            return Ok(new { csrfToken = tokens.RequestToken });
+            try
+            {
+                // Genera y almacena el token CSRF en cookie 
+                var tokens = antiforgery.GetAndStoreTokens(HttpContext);
+                
+                // Retornamos el RequestToken al cliente
+                return Ok(new { csrfToken = tokens.RequestToken });
+            } catch (Exception ex)
+            {
+                return StatusCode(500, new { Message = "Error generando CSRF", Details = ex.Message });
+            }
         }
 
         [HttpPost("login")]
