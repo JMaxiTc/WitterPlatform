@@ -5,10 +5,13 @@ using System.Text;
 using Microsoft.EntityFrameworkCore;
 using Witter.Api.Data;
 using Microsoft.AspNetCore.Mvc;
-
+using Witter.Api.Services;
 
 // Configuración de Servicios
 var builder = WebApplication.CreateBuilder(args);
+
+// Inyectar Servicio de Firma Digital Asimétrica (RSA)
+builder.Services.AddSingleton<DigitalSignatureService>();
 
 // Configurar Entity Framework con SQL Server
 builder.Services.AddDbContext<WitterDbContext>(options =>

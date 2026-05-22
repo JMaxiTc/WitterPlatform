@@ -14,5 +14,8 @@ namespace Witter.Api.Models
         public string Feedback { get; set; } = string.Empty;
         public DateTime SubmittedAt { get; set; } = DateTime.UtcNow;
         public bool IsApproved { get; set; } = false;
+        
+        // Firma digital que garantiza el No Repudio de la entrega
+        public string? DigitalSignature { get; set; }
     }
 }

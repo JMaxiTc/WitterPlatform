@@ -3,6 +3,7 @@ using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Witter.Api.Data;
 
@@ -11,9 +12,11 @@ using Witter.Api.Data;
 namespace Witter.Api.Migrations
 {
     [DbContext(typeof(WitterDbContext))]
-    partial class WitterDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260522015939_AddDigitalSignatureField")]
+    partial class AddDigitalSignatureField
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder

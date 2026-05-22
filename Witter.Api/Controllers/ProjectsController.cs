@@ -5,6 +5,7 @@ using System.Security.Claims;
 using Witter.Api.Data;
 using Witter.Api.DTOs;
 using Witter.Api.Models;
+using Witter.Api.Services;
 
 
 namespace Witter.Api.Controllers
@@ -15,10 +16,12 @@ namespace Witter.Api.Controllers
     public class ProjectsController : ControllerBase
     {
         private readonly WitterDbContext _context;
+        private readonly DigitalSignatureService _digitalSignatureService;
 
-        public ProjectsController(WitterDbContext context)
+        public ProjectsController(WitterDbContext context, DigitalSignatureService digitalSignatureService)
         {
             _context = context;
+            _digitalSignatureService = digitalSignatureService;
         }
 
         [HttpPost]
@@ -304,6 +307,9 @@ namespace Witter.Api.Controllers
             var app = await _context.Applications.FirstOrDefaultAsync(a => a.ProjectId == id && a.GraduateId == graduateId && a.ApplicationStatus == "Accepted");
             if (app == null) return BadRequest(new { Message = "No estás asignado a este proyecto." });
 
+            string contentToSign = $"{milestoneId}_{graduateId}_{dto.RepoUrl}_{dto.Comment}_{DateTime.UtcNow.ToString("yyyyMMddHHmmss")}";
+            string generatedSignature = _digitalSignatureService.SignData(contentToSign);
+
             var submission = new Submission
             {
                 MilestoneId = milestoneId,
@@ -312,7 +318,8 @@ namespace Witter.Api.Controllers
                 Comment = dto.Comment ?? "",
                 Feedback = "",
                 SubmittedAt = DateTime.UtcNow,
-                IsApproved = false
+                IsApproved = false,
+                DigitalSignature = generatedSignature 
             };
 
             milestone.Status = "En revisión";
@@ -320,7 +327,11 @@ namespace Witter.Api.Controllers
             _context.Submissions.Add(submission);
             await _context.SaveChangesAsync();
 
-            return Ok(new { Message = "Entrega enviada exitosamente para revisión." });
+            return Ok(new { 
+                Message = "Entrega enviada exitosamente para revisión.",
+                DigitalSignature = generatedSignature,
+                VerificationKey = _digitalSignatureService.GetPublicKey() 
+            });
         }
 
         // Método para revisar entrega (empresa)
