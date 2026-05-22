@@ -136,5 +136,11 @@ app.UseAuthorization();
 
 app.MapControllers();
 
+using (var scope = app.Services.CreateScope())
+{
+    var dbContext = scope.ServiceProvider.GetRequiredService<WitterDbContext>();
+    dbContext.Database.Migrate(); // Aplica las migraciones pendientes automáticamente
+}
+
 // Corre la Aplicación
 app.Run();
