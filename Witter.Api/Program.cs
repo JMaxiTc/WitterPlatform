@@ -5,6 +5,7 @@ using System.Text;
 using Microsoft.EntityFrameworkCore;
 using Witter.Api.Data;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.HttpOverrides; 
 using Witter.Api.Services;
 
 // Configuración de Servicios
@@ -96,6 +97,12 @@ builder.Services.AddControllersWithViews(options =>
 
 // Configuración de Pipelines HTTP
 var app = builder.Build();
+
+// Permitir que .NET sepa que el proxy de la nube maneja HTTPS
+app.UseForwardedHeaders(new ForwardedHeadersOptions
+{
+    ForwardedHeaders = ForwardedHeaders.XForwardedFor | ForwardedHeaders.XForwardedProto
+});
 
 // Encabezados de Seguridad
 app.Use(async (context, next) =>

@@ -7,27 +7,26 @@ namespace Witter.Api.Services
     {
         private readonly RSA _rsa;
 
-        public DigitalSignatureService()
+        public DigitalSignatureService(IConfiguration configuration)
         {
             _rsa = RSA.Create();
+            // Busca la variable de entorno en la nube, o una llave de pruebas si estás en local
+            string? rsaKeyXml = configuration["RSAPrivateKey"];
             
-            // Para propósitos de esta implementación, generaremos una llave temporal o en memoria
-            // En un ambiente real, la llave privada debe guardarse en un Key Vault (como AWS KMS o Azure Key Vault)
-            // y la llave pública debe estar disponible para que terceros verifiquen.
+            if (string.IsNullOrEmpty(rsaKeyXml))
+            {
+                // Solo para desarrollo si no has configurado la variable
+                rsaKeyXml = _rsa.ToXmlString(true); 
+            }
             
-            // Alternativamente, puedes cargar desde un archivo, pero como no existe configuramos una llave nueva por sesión
+            // Importa la llave persistente
+            _rsa.FromXmlString(rsaKeyXml); 
         }
 
         // Exportar la llave pública para que alguien más pueda verificar
         public string GetPublicKey()
         {
             return Convert.ToBase64String(_rsa.ExportRSAPublicKey());
-        }
-
-        // Importar llave privada si se deseara persistencia
-        public void ImportPrivateKey(string base64PrivateKey)
-        {
-            _rsa.ImportRSAPrivateKey(Convert.FromBase64String(base64PrivateKey), out _);
         }
 
         public string SignData(string dataToSign)
