@@ -72,7 +72,10 @@ builder.Services.AddCors(options =>
 {
     options.AddPolicy("AllowReactApp", policy =>
     {
-        policy.WithOrigins("http://localhost:5173") // Ip del front
+        policy.WithOrigins(
+            "http://localhost:5173", // Ip del front local
+            "https://witter-platform.vercel.app"
+            ) 
               .AllowAnyHeader()
               .AllowAnyMethod()
               .AllowCredentials(); // Permitimos el envio de cookies para autenticar
