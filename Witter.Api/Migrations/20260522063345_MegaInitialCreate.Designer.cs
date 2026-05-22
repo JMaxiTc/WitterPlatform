@@ -12,8 +12,8 @@ using Witter.Api.Data;
 namespace Witter.Api.Migrations
 {
     [DbContext(typeof(WitterDbContext))]
-    [Migration("20260506003206_InitialCreate")]
-    partial class InitialCreate
+    [Migration("20260522063345_MegaInitialCreate")]
+    partial class MegaInitialCreate
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -25,6 +25,31 @@ namespace Witter.Api.Migrations
 
             SqlServerModelBuilderExtensions.UseIdentityColumns(modelBuilder);
 
+            modelBuilder.Entity("Witter.Api.Models.Application", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("ApplicationStatus")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<DateTime>("AppliedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<Guid>("GraduateId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<int>("ProjectId")
+                        .HasColumnType("int");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("Applications");
+                });
+
             modelBuilder.Entity("Witter.Api.Models.CompanyProfile", b =>
                 {
                     b.Property<Guid>("UserId")
@@ -35,7 +60,6 @@ namespace Witter.Api.Migrations
                         .HasColumnType("nvarchar(max)");
 
                     b.Property<string>("LogoUrl")
-                        .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
                     b.Property<string>("RFC")
@@ -47,7 +71,6 @@ namespace Witter.Api.Migrations
                         .HasColumnType("nvarchar(max)");
 
                     b.Property<string>("StripeCustId")
-                        .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
                     b.Property<string>("Website")
@@ -64,27 +87,46 @@ namespace Witter.Api.Migrations
                     b.Property<Guid>("UserId")
                         .HasColumnType("uniqueidentifier");
 
+                    b.Property<string>("AvatarUrl")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("Bio")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("Campus")
+                        .HasColumnType("nvarchar(max)");
+
                     b.Property<DateTime>("DateOfBirth")
                         .HasColumnType("datetime2");
 
                     b.Property<string>("Degree")
-                        .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
+                    b.Property<int?>("EgressYear")
+                        .HasColumnType("int");
+
                     b.Property<string>("FirstName")
-                        .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
                     b.Property<string>("GithubUrl")
-                        .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
                     b.Property<string>("LastName")
-                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("LicenseId")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("LinkedinUrl")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("PortfolioUrl")
                         .HasColumnType("nvarchar(max)");
 
                     b.Property<string>("School")
-                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("StripeAccId")
                         .HasColumnType("nvarchar(max)");
 
                     b.HasKey("UserId");
@@ -105,6 +147,46 @@ namespace Witter.Api.Migrations
                     b.ToTable("GraduateSkills");
                 });
 
+            modelBuilder.Entity("Witter.Api.Models.Milestone", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<decimal>("Amount")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<string>("Description")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("PaymentStatus")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<int>("ProjectId")
+                        .HasColumnType("int");
+
+                    b.Property<string>("Status")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<int>("Step")
+                        .HasColumnType("int");
+
+                    b.Property<int>("StepNumber")
+                        .HasColumnType("int");
+
+                    b.Property<string>("TaskDescription")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("Title")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("Milestones");
+                });
+
             modelBuilder.Entity("Witter.Api.Models.Project", b =>
                 {
                     b.Property<int>("Id")
@@ -117,7 +199,6 @@ namespace Witter.Api.Migrations
                         .HasColumnType("decimal(18,2)");
 
                     b.Property<string>("Category")
-                        .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
                     b.Property<Guid>("CompanyId")
@@ -126,30 +207,37 @@ namespace Witter.Api.Migrations
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("datetime2");
 
+                    b.Property<string>("Description")
+                        .HasColumnType("nvarchar(max)");
+
                     b.Property<int?>("Duration")
                         .HasColumnType("int");
 
+                    b.Property<int>("DurationDays")
+                        .HasColumnType("int");
+
                     b.Property<string>("LevelReq")
-                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("LevelRequired")
                         .HasColumnType("nvarchar(max)");
 
                     b.Property<string>("ProjectDescription")
-                        .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
                     b.Property<string>("ProjectStatus")
-                        .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
                     b.Property<DateTime?>("StartDate")
                         .HasColumnType("datetime2");
 
+                    b.Property<string>("Status")
+                        .HasColumnType("nvarchar(max)");
+
                     b.Property<string>("Title")
-                        .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
                     b.Property<string>("WorkMode")
-                        .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
                     b.HasKey("Id");
@@ -187,6 +275,46 @@ namespace Witter.Api.Migrations
                     b.ToTable("Skills");
                 });
 
+            modelBuilder.Entity("Witter.Api.Models.Submission", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("Comment")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("DigitalSignature")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("Feedback")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<Guid>("GraduateId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<bool>("IsApproved")
+                        .HasColumnType("bit");
+
+                    b.Property<int>("MilestoneId")
+                        .HasColumnType("int");
+
+                    b.Property<string>("RepoUrl")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<DateTime>("SubmittedAt")
+                        .HasColumnType("datetime2");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("Submissions");
+                });
+
             modelBuilder.Entity("Witter.Api.Models.User", b =>
                 {
                     b.Property<Guid>("Id")
@@ -199,6 +327,9 @@ namespace Witter.Api.Migrations
                     b.Property<string>("Email")
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
+
+                    b.Property<bool>("IsApproved")
+                        .HasColumnType("bit");
 
                     b.Property<bool>("IsDeleted")
                         .HasColumnType("bit");
