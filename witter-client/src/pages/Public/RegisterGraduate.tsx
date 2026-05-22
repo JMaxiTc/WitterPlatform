@@ -17,7 +17,7 @@ export default function RegisterGraduate() {
     school: 'Tecnológico de Colima',
     degree: 'Ingeniería Informática',
     githubUrl: '',
-    skillsIds: []
+    skillIds: []
   });
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
