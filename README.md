@@ -1,4 +1,4 @@
-#IMPORTANTE
+# IMPORTANTE
 Los commits importantes son los anteriores a : Desploy1 Migraciones automaticas\
 Algunos commits de las implementaciones de seguridad son: \
 * V1.3. Modificacion vista de detalle de proyectos. Vista y funcionalida de postulacion hecha correctamente. Implementacion de Seguridad contra ataques y implementacion de Cookie de sesion.
