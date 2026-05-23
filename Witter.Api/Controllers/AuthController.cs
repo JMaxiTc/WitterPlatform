@@ -232,7 +232,7 @@ namespace Witter.Api.Controllers
         }
 
         [HttpPost("logout")]
-        [ValidateAntiForgeryToken]
+        [IgnoreAntiforgeryToken]
         public IActionResult Logout()
         {
             // Esto le indica al navegador que la cookie "WitterAuthToken"

@@ -188,7 +188,7 @@ namespace Witter.Api.Controllers
 
         [Authorize]
         [HttpPut("me")]
-        [ValidateAntiForgeryToken]
+        [IgnoreAntiforgeryToken]
         public async Task<IActionResult> UpdateMyProfile([FromBody] UpdateGraduateProfileDto dto)
         {
             var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value 
@@ -230,7 +230,7 @@ namespace Witter.Api.Controllers
 
         [Authorize]
         [HttpPut("me/skills")]
-        [ValidateAntiForgeryToken]
+        [IgnoreAntiforgeryToken]
         public async Task<IActionResult> UpdateMySkills([FromBody] UpdateSkillsDto dto)
         {
             var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value 

@@ -72,17 +72,13 @@ builder.Services.AddCors(options =>
 {
     options.AddPolicy("AllowReactApp", policy =>
     {
-<<<<<<< HEAD
-        policy.WithOrigins("http://localhost:5173", "https://witter-platform.vercel.app")
-=======
         policy.WithOrigins(
             "http://localhost:5173", // Ip del front local
             "https://witter-platform.vercel.app"
             ) 
->>>>>>> b66676bbb5142c5d637861a6d29ffd3086c9e2af
               .AllowAnyHeader()
               .AllowAnyMethod()
-              .AllowCredentials();
+              .AllowCredentials(); // Permitimos el envio de cookies para autenticar
     });
 });
 
@@ -96,10 +92,10 @@ builder.Services.AddAntiforgery(options =>
 });
 
 // Filtro global para validar tken CSRF en todas las solicitudes (excepto GET)
-builder.Services.AddControllersWithViews(options =>
-{
-    options.Filters.Add(new AutoValidateAntiforgeryTokenAttribute());
-});
+//builder.Services.AddControllersWithViews(options =>
+//{
+//    options.Filters.Add(new AutoValidateAntiforgeryTokenAttribute());
+//});
 
 
 // Configuración de Pipelines HTTP
