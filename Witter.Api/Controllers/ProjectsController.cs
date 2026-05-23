@@ -25,7 +25,7 @@ namespace Witter.Api.Controllers
         }
 
         [HttpPost]
-        [ValidateAntiForgeryToken]
+        [IgnoreAntiforgeryToken]
         [Authorize(Roles = "Company")] // Método solo para empresa
         public async Task<IActionResult> CreateProject([FromBody] ProjectCreateDto dto)
         {
@@ -105,7 +105,6 @@ namespace Witter.Api.Controllers
         }
         // Método para postularse a un proyecto (egresado)
         [HttpPost("{id}/apply")]
-        [ValidateAntiForgeryToken]
         [Authorize(Roles = "Graduate")] // Metodo para egresado
         public async Task<IActionResult> ApplyToProject(int id)
         {
@@ -257,7 +256,6 @@ namespace Witter.Api.Controllers
 
         // // Método para aceptar o rechazar una postulación (empresa)
         [HttpPut("{id}/applications/{applicationId}/status")]
-        [ValidateAntiForgeryToken]
         [Authorize(Roles = "Company")]
         public async Task<IActionResult> UpdateApplicationStatus(int id, int applicationId, [FromBody] UpdateApplicationStatusDto dto)
         {
