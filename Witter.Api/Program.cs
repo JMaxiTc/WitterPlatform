@@ -55,7 +55,7 @@ builder.Services.AddAuthentication(options =>
     options.Cookie.Name = "WitterAuthToken";
     options.Cookie.HttpOnly = true;
     options.Cookie.SecurePolicy = CookieSecurePolicy.Always;
-    options.Cookie.SameSite = SameSiteMode.Strict;
+    options.Cookie.SameSite = SameSiteMode.None;
     options.Cookie.Path = "/";
 });
 
@@ -71,10 +71,10 @@ builder.Services.AddCors(options =>
 {
     options.AddPolicy("AllowReactApp", policy =>
     {
-        policy.WithOrigins("http://localhost:5173") // Ip del front
+        policy.WithOrigins("http://localhost:5173", "https://witter-platform.vercel.app")
               .AllowAnyHeader()
               .AllowAnyMethod()
-              .AllowCredentials(); // Permitimos el envio de cookies para autenticar
+              .AllowCredentials();
     });
 });
 
@@ -82,9 +82,9 @@ builder.Services.AddCors(options =>
 builder.Services.AddAntiforgery(options =>
 {
     options.HeaderName = "X-CSRF-TOKEN";
-    options.Cookie.SecurePolicy = CookieSecurePolicy.SameAsRequest; // **CAMBIARRRRR**
+    options.Cookie.SecurePolicy = CookieSecurePolicy.Always;
     options.Cookie.HttpOnly = true;
-    options.Cookie.SameSite = SameSiteMode.Strict;
+    options.Cookie.SameSite = SameSiteMode.None;
 });
 
 // Filtro global para validar tken CSRF en todas las solicitudes (excepto GET)
