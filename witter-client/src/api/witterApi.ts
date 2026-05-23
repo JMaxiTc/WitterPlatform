@@ -2,7 +2,7 @@ import axios from 'axios';
 
 // Configuramos la URL base de tu backend en ASP.NET Core
 const witterApi = axios.create({
-    baseURL: '/api',
+    baseURL: 'https://witterplatform-production.up.railway.app/api',
     withCredentials: true, // Permitir el envío de cookies para autenticacion
     headers: {
         'Content-Type': 'application/json'

@@ -5,6 +5,7 @@ using System.Text;
 using Microsoft.EntityFrameworkCore;
 using Witter.Api.Data;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.HttpOverrides; 
 using Witter.Api.Services;
 
 // Configuración de Servicios
@@ -71,7 +72,14 @@ builder.Services.AddCors(options =>
 {
     options.AddPolicy("AllowReactApp", policy =>
     {
+<<<<<<< HEAD
         policy.WithOrigins("http://localhost:5173", "https://witter-platform.vercel.app")
+=======
+        policy.WithOrigins(
+            "http://localhost:5173", // Ip del front local
+            "https://witter-platform.vercel.app"
+            ) 
+>>>>>>> b66676bbb5142c5d637861a6d29ffd3086c9e2af
               .AllowAnyHeader()
               .AllowAnyMethod()
               .AllowCredentials();
@@ -96,6 +104,17 @@ builder.Services.AddControllersWithViews(options =>
 
 // Configuración de Pipelines HTTP
 var app = builder.Build();
+
+// Permitir que .NET sepa que el proxy de la nube maneja HTTPS
+var forwardedHeadersOptions = new ForwardedHeadersOptions
+{
+    ForwardedHeaders = ForwardedHeaders.XForwardedFor | ForwardedHeaders.XForwardedProto
+};
+// Le decimos .NET que confíe en todos los balanceadores de carga proxy
+forwardedHeadersOptions.KnownIPNetworks.Clear();
+forwardedHeadersOptions.KnownProxies.Clear();
+
+app.UseForwardedHeaders(forwardedHeadersOptions);
 
 // Encabezados de Seguridad
 app.Use(async (context, next) =>
@@ -128,6 +147,12 @@ app.UseAuthentication();
 app.UseAuthorization();  
 
 app.MapControllers();
+
+using (var scope = app.Services.CreateScope())
+{
+    var dbContext = scope.ServiceProvider.GetRequiredService<WitterDbContext>();
+    dbContext.Database.Migrate(); // Aplica las migraciones pendientes automáticamente
+}
 
 // Corre la Aplicación
 app.Run();
